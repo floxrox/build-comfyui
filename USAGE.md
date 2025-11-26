@@ -185,9 +185,11 @@ This package includes dependencies for common ComfyUI workflows:
 ### Built-in Support
 
 - ✅ **GGUF quantized models** - Reduced VRAM usage (critical for FLUX)
-- ✅ **ControlNet preprocessing** - opencv-python for Canny, HED, etc.
-- ✅ **Model optimization** - accelerate for faster loading
+- ✅ **ControlNet preprocessing** - opencv-python + controlnet-aux for advanced preprocessors
+- ✅ **FLUX optimization** - nunchaku for faster FLUX inference
+- ✅ **Model optimization** - accelerate + spandrel for faster loading
 - ✅ **HuggingFace integration** - huggingface-hub for downloads
+- ✅ **Image processing** - timm + scikit-image for advanced workflows
 
 ### Custom Nodes (User Installation)
 
