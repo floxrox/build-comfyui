@@ -6,6 +6,8 @@
 , comfyui-workflow-templates
 , comfyui-embedded-docs
 , spandrel
+, nunchaku
+, controlnet-aux
 }:
 
 python3.pkgs.buildPythonApplication rec {
@@ -31,6 +33,10 @@ python3.pkgs.buildPythonApplication rec {
     comfyui-workflow-templates
     comfyui-embedded-docs
     spandrel
+
+    # Workflow optimization packages
+    nunchaku          # FLUX inference optimization
+    controlnet-aux    # Advanced ControlNet preprocessors
   ] ++ (with python3.pkgs; [
     # PyTorch stack - Override with CUDA-optimized if needed
     torch
@@ -76,6 +82,12 @@ python3.pkgs.buildPythonApplication rec {
     opencv-python     # ControlNet preprocessors (Canny, HED, etc.)
     gguf              # GGUF quantized model support (critical for FLUX)
     accelerate        # Model loading optimization
+
+    # Additional dependencies for workflow optimization
+    timm              # PyTorch Image Models (for controlnet-aux)
+    scikit-image      # Image processing (for controlnet-aux)
+    matplotlib        # Plotting library (for nunchaku)
+    pandas            # Data analysis (for nunchaku)
   ]);
 
   nativeBuildInputs = [ makeWrapper ];
