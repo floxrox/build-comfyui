@@ -32,13 +32,6 @@ python3.pkgs.buildPythonApplication rec {
   #   - python313Packages.pytorchWithCuda (nixpkgs CUDA version)
   #   - flox/pytorch-python313-cuda12_8-sm86-avx2 (pre-built optimized)
   #   - Custom builds published to your catalog
-  # Fix kornia-rs build crash on ARM64 by increasing rustc stack size
-  kornia-fixed = python3.pkgs.kornia.overridePythonAttrs (old: {
-    env = (old.env or {}) // {
-      RUST_MIN_STACK = "16777216";
-    };
-  });
-
   propagatedBuildInputs = [
     # ComfyUI-specific packages
     comfyui-frontend-package
@@ -67,7 +60,10 @@ python3.pkgs.buildPythonApplication rec {
     tokenizers
     sentencepiece
     safetensors
-
+  ]) ++ lib.optionals (!lib.elem python3.stdenv.hostPlatform.system ["aarch64-linux" "aarch64-darwin"]) (with python3.pkgs; [
+    # kornia - excluded on ARM64 due to kornia-rs build crashes
+    kornia
+  ]) ++ (with python3.pkgs; [
     # Web and async
     aiohttp
     yarl
@@ -99,9 +95,7 @@ python3.pkgs.buildPythonApplication rec {
     scikit-image      # Image processing (for controlnet-aux)
     matplotlib        # Plotting library (for nunchaku)
     pandas            # Data analysis (for nunchaku)
-  ]) ++ [
-    kornia-fixed
-  ];
+  ]);
 
   nativeBuildInputs = [ makeWrapper ];
 
