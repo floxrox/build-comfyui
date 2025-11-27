@@ -335,9 +335,9 @@ When you publish, Flox stores:
 
 **Result:** Anyone installing `yourorg/comfyui@0.3.75` gets exact same bits, indefinitely.
 
-## Source Vendoring (Optional Advanced Pattern)
+## Source Vendoring (REQUIRED for ComfyUI)
 
-For mission-critical reproducibility, vendor sources locally:
+For true reproducibility, ALL PyPI sources MUST be vendored locally in the git repository. This is not optional—it's the core of the reproducibility strategy.
 
 ### 1. Create Sources Directory
 
@@ -370,21 +370,44 @@ python3Packages.buildPythonPackage rec {
   pname = "package";
   version = "1.2.3";
 
-  # Use local vendored source
+  # Use local vendored source - NO fetchurl or fetchFromGitHub here!
   src = ../../.flox/sources/${pname}-${version}.tar.gz;
 
-  # Still include hash for verification
-  hash = "sha256-abc123...";
+  # Note: No hash needed when using local files
+  # Hashes are verified via SHA256SUMS.txt in .flox/sources/
 
   # ... rest of definition
 }
 ```
 
-**When to vendor:**
-- Package disappeared from PyPI/GitHub in the past
-- Package has unstable hosting
-- Compliance/security requires source control
-- Maximum paranoia level
+**Why vendoring is REQUIRED:**
+- PyPI packages frequently disappear (we observed 404s during this build)
+- Hash verification alone provides integrity, NOT availability
+- Git provides true immutability and version control
+- Building old versions years later requires all sources to be present
+
+### Current Implementation Status
+
+**ComfyUI v0.3.75 vendored sources** (as of 2025-11-27):
+- ✅ All 11 PyPI packages vendored in `.flox/sources/`
+- ✅ SHA256 checksums recorded in `.flox/sources/SHA256SUMS.txt`
+- ✅ All `.nix` files updated to use `../../.flox/sources/` paths
+- ✅ No external fetchurl dependencies for custom packages
+
+**Vendored packages:**
+1. comfyui_frontend_package-1.30.6-py3-none-any.whl (8.7M)
+2. comfyui_embedded_docs-0.3.1-py3-none-any.whl (7.7M)
+3. comfyui_workflow_templates-0.7.20-py3-none-any.whl (20K)
+4. comfyui_workflow_templates_core-0.3.10-py3-none-any.whl (27K)
+5. comfyui_workflow_templates_media_api-0.3.14-py3-none-any.whl (42M)
+6. comfyui_workflow_templates_media_image-0.3.15-py3-none-any.whl (5.7M)
+7. comfyui_workflow_templates_media_other-0.3.9-py3-none-any.whl (12M)
+8. comfyui_workflow_templates_media_video-0.3.12-py3-none-any.whl (31M)
+9. controlnet_aux-0.0.10-py3-none-any.whl (284K)
+10. nunchaku-0.16.1-py3-none-any.whl (18K)
+11. spandrel-0.4.0.tar.gz (223K)
+
+**Total vendored size:** ~106MB
 
 ## Troubleshooting Guide
 

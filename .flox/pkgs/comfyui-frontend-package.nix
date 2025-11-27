@@ -1,6 +1,5 @@
 { lib
 , python3
-, fetchurl
 }:
 
 python3.pkgs.buildPythonPackage rec {
@@ -8,10 +7,8 @@ python3.pkgs.buildPythonPackage rec {
   version = "1.30.6";
   format = "wheel";
 
-  src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/py3/c/comfyui_frontend_package/comfyui_frontend_package-${version}-py3-none-any.whl";
-    hash = "sha256-NTTaulqHFwBbwHHmIVpa6BPfBpe/FdAO6EkyZQYkkM8=";
-  };
+  # Use vendored source from repository
+  src = ../../.flox/sources/comfyui_frontend_package-${version}-py3-none-any.whl;
 
   # No dependencies - this is a frontend package
   propagatedBuildInputs = [ ];

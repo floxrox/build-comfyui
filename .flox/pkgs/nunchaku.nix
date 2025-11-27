@@ -1,6 +1,5 @@
 { lib
 , python3
-, fetchurl
 }:
 
 python3.pkgs.buildPythonPackage rec {
@@ -8,10 +7,8 @@ python3.pkgs.buildPythonPackage rec {
   version = "0.16.1";
   format = "wheel";
 
-  src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/py3/n/nunchaku/nunchaku-${version}-py3-none-any.whl";
-    hash = "sha256-qP1b+b+a3MWYcdXNj5AiZfOlX5AKxByvG9KUESDn6Ks=";
-  };
+  # Use vendored source from repository
+  src = ../../.flox/sources/nunchaku-${version}-py3-none-any.whl;
 
   propagatedBuildInputs = with python3.pkgs; [
     numpy

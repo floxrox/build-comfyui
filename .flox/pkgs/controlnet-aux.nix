@@ -1,6 +1,5 @@
 { lib
 , python3
-, fetchurl
 }:
 
 python3.pkgs.buildPythonPackage rec {
@@ -8,10 +7,8 @@ python3.pkgs.buildPythonPackage rec {
   version = "0.0.10";
   format = "wheel";
 
-  src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/py3/c/controlnet_aux/controlnet_aux-${version}-py3-none-any.whl";
-    hash = "sha256-ytNIDWLH3xrlaSWKZZyI1zCHMyPSrbufb3rr2HkX3zs=";
-  };
+  # Use vendored source from repository
+  src = ../../.flox/sources/controlnet_aux-${version}-py3-none-any.whl;
 
   propagatedBuildInputs = with python3.pkgs; [
     torch

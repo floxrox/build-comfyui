@@ -1,6 +1,5 @@
 { lib
 , python3
-, fetchurl
 }:
 
 python3.pkgs.buildPythonPackage rec {
@@ -8,10 +7,8 @@ python3.pkgs.buildPythonPackage rec {
   version = "0.4.0";
   pyproject = true;
 
-  src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/source/s/spandrel/spandrel-${version}.tar.gz";
-    hash = "sha256-9FUmiT+SOhLvN1QsROREsSCJdlk7x8zfpU/QTHw+gMo=";
-  };
+  # Use vendored source from repository
+  src = ../../.flox/sources/spandrel-${version}.tar.gz;
 
   build-system = with python3.pkgs; [
     setuptools

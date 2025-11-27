@@ -1,6 +1,5 @@
 { lib
 , python3
-, fetchurl
 , comfyui-workflow-templates-core
 , comfyui-workflow-templates-media-api
 , comfyui-workflow-templates-media-video
@@ -13,10 +12,8 @@ python3.pkgs.buildPythonPackage rec {
   version = "0.7.20";
   format = "wheel";
 
-  src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/py3/c/comfyui_workflow_templates/comfyui_workflow_templates-${version}-py3-none-any.whl";
-    hash = "sha256-tPF2mr3BrqXKNAxlzx9cI1OJfH3gyzKc8IrtN8co8qM=";
-  };
+  # Use vendored source from repository
+  src = ../../.flox/sources/comfyui_workflow_templates-${version}-py3-none-any.whl;
 
   propagatedBuildInputs = [
     comfyui-workflow-templates-core
