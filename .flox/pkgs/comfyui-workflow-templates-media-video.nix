@@ -4,7 +4,7 @@
 
 python3.pkgs.buildPythonPackage rec {
   pname = "comfyui-workflow-templates-media-video";
-  version = "0.3.12";
+  version = "0.3.22";
   format = "wheel";
 
   # Use vendored source from repository

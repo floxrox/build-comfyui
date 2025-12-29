@@ -9,7 +9,7 @@
 
 python3.pkgs.buildPythonPackage rec {
   pname = "comfyui-workflow-templates";
-  version = "0.7.20";
+  version = "0.7.63";
   format = "wheel";
 
   # Use vendored source from repository

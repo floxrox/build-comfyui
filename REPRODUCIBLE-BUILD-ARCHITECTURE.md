@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the architecture pattern for ensuring long-term reproducibility of the ComfyUI Flox package build. The goal is that someone building `comfyui@0.3.75` in 2028 will get **exactly** the same binaries as building it in 2025.
+This document describes the architecture pattern for ensuring long-term reproducibility of the ComfyUI Flox package build. The goal is that someone building `comfyui@0.6.0` in 2028 will get **exactly** the same binaries as building it in 2025.
 
 ## Core Principles
 
@@ -309,8 +309,8 @@ Solution: Add platform constraints or conditional dependencies
 ```bash
 # 1. Ensure git is clean
 git add .flox/
-git commit -m "Add ComfyUI 0.3.75 with reproducible deps"
-git tag v0.3.75
+git commit -m "Add ComfyUI 0.6.0 with reproducible deps"
+git tag v0.6.0
 git push origin main --tags
 
 # 2. Build locally to verify
@@ -333,7 +333,7 @@ When you publish, Flox stores:
 - ✅ Source references (via hashes)
 - ✅ Build metadata and manifest
 
-**Result:** Anyone installing `yourorg/comfyui@0.3.75` gets exact same bits, indefinitely.
+**Result:** Anyone installing `yourorg/comfyui@0.6.0` gets exact same bits, indefinitely.
 
 ## Source Vendoring (REQUIRED for ComfyUI)
 
@@ -388,21 +388,21 @@ python3Packages.buildPythonPackage rec {
 
 ### Current Implementation Status
 
-**ComfyUI v0.3.75 vendored sources** (as of 2025-11-27):
+**ComfyUI v0.6.0 vendored sources** (as of 2025-12-29):
 - ✅ All 11 PyPI packages vendored in `.flox/sources/`
 - ✅ SHA256 checksums recorded in `.flox/sources/SHA256SUMS.txt`
 - ✅ All `.nix` files updated to use `../../.flox/sources/` paths
 - ✅ No external fetchurl dependencies for custom packages
 
 **Vendored packages:**
-1. comfyui_frontend_package-1.30.6-py3-none-any.whl (8.7M)
+1. comfyui_frontend_package-1.34.9-py3-none-any.whl (8.7M)
 2. comfyui_embedded_docs-0.3.1-py3-none-any.whl (7.7M)
-3. comfyui_workflow_templates-0.7.20-py3-none-any.whl (20K)
-4. comfyui_workflow_templates_core-0.3.10-py3-none-any.whl (27K)
-5. comfyui_workflow_templates_media_api-0.3.14-py3-none-any.whl (42M)
-6. comfyui_workflow_templates_media_image-0.3.15-py3-none-any.whl (5.7M)
-7. comfyui_workflow_templates_media_other-0.3.9-py3-none-any.whl (12M)
-8. comfyui_workflow_templates_media_video-0.3.12-py3-none-any.whl (31M)
+3. comfyui_workflow_templates-0.7.63-py3-none-any.whl (20K)
+4. comfyui_workflow_templates_core-0.3.61-py3-none-any.whl (30K)
+5. comfyui_workflow_templates_media_api-0.3.34-py3-none-any.whl (57M)
+6. comfyui_workflow_templates_media_image-0.3.43-py3-none-any.whl (8.8M)
+7. comfyui_workflow_templates_media_other-0.3.62-py3-none-any.whl (13M)
+8. comfyui_workflow_templates_media_video-0.3.22-py3-none-any.whl (39M)
 9. controlnet_aux-0.0.10-py3-none-any.whl (284K)
 10. nunchaku-0.16.1-py3-none-any.whl (18K)
 11. spandrel-0.4.0.tar.gz (223K)

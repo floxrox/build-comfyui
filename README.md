@@ -56,9 +56,9 @@ This package tracks [ComfyUI upstream releases](https://github.com/comfyanonymou
 
 | Component | Version | Source |
 |-----------|---------|--------|
-| ComfyUI | 0.3.75 | [GitHub](https://github.com/comfyanonymous/ComfyUI) |
-| Frontend Package | 1.30.6 | [PyPI](https://pypi.org/project/comfyui-frontend-package/) |
-| Workflow Templates | 0.7.20 | [PyPI](https://pypi.org/project/comfyui-workflow-templates/) |
+| ComfyUI | 0.6.0 | [GitHub](https://github.com/comfyanonymous/ComfyUI) |
+| Frontend Package | 1.34.9 | [PyPI](https://pypi.org/project/comfyui-frontend-package/) |
+| Workflow Templates | 0.7.63 | [PyPI](https://pypi.org/project/comfyui-workflow-templates/) |
 | Embedded Docs | 0.3.1 | [PyPI](https://pypi.org/project/comfyui-embedded-docs/) |
 | Spandrel | 0.4.0 | [PyPI](https://pypi.org/project/spandrel/) |
 | **Nunchaku** | **0.16.1** | **[PyPI](https://pypi.org/project/nunchaku/)** (FLUX optimization) |
@@ -84,10 +84,10 @@ Edit `.flox/pkgs/comfyui-base.nix`:
 
 ```nix
 # Change this line:
-version = "0.3.75";
+version = "0.6.0";
 
 # To new version (without 'v' prefix):
-version = "0.3.76";  # or whatever the latest is
+version = "0.6.1";  # or whatever the latest is
 ```
 
 #### 3. Update the Hash
@@ -147,8 +147,8 @@ Update the "Current Versions" table in this README with new versions.
 
 ```bash
 git add .
-git commit -m "Update ComfyUI to v0.3.76"
-git tag v0.3.76
+git commit -m "Update ComfyUI to v0.6.1"
+git tag v0.6.1
 git push && git push --tags
 
 flox publish -o yourcatalog comfyui-base
@@ -160,7 +160,7 @@ To build a specific older version:
 
 1. **Checkout the tagged version:**
    ```bash
-   git checkout v0.3.75
+   git checkout v0.6.0
    flox build comfyui-base
    ```
 
@@ -168,7 +168,7 @@ To build a specific older version:
 
 3. **Create version-specific branches** (optional):
    ```bash
-   git checkout -b v0.3.x  # For 0.3.x series
+   git checkout -b v0.6.x  # For 0.6.x series
    # Make updates specific to this version
    ```
 
@@ -180,7 +180,7 @@ Create a helper script to check for updates:
 #!/usr/bin/env bash
 # check-updates.sh
 
-CURRENT_VERSION="0.3.75"
+CURRENT_VERSION="0.6.0"
 LATEST_VERSION=$(curl -s https://api.github.com/repos/comfyanonymous/ComfyUI/releases/latest | jq -r '.tag_name' | sed 's/^v//')
 
 if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
@@ -219,14 +219,14 @@ See [KNOWN-ISSUES.md](./KNOWN-ISSUES.md) for platform-specific issues and workar
 ### Recommended Workflow
 
 1. **Track stable releases** - Only update when ComfyUI releases a new stable version
-2. **Tag your builds** - Create git tags matching upstream (e.g., `v0.3.75`)
+2. **Tag your builds** - Create git tags matching upstream (e.g., `v0.6.0`)
 3. **Test before publishing** - Always build and test locally first
 4. **Document changes** - Note any breaking changes or new dependencies in commit messages
 
 ### Version Naming
 
-- **Git tags**: Match upstream with `v` prefix (e.g., `v0.3.75`)
-- **Package version**: In Nix expression, no `v` prefix (e.g., `0.3.75`)
+- **Git tags**: Match upstream with `v` prefix (e.g., `v0.6.0`)
+- **Package version**: In Nix expression, no `v` prefix (e.g., `0.6.0`)
 - **Published name**: Use catalog namespacing (e.g., `yourcatalog/comfyui`)
 
 ---
