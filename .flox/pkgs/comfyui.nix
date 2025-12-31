@@ -14,6 +14,7 @@
 , nunchaku
 , controlnet-aux
 , gguf
+, accelerate
 }:
 
 python3.pkgs.buildPythonApplication rec {
@@ -44,8 +45,9 @@ python3.pkgs.buildPythonApplication rec {
     nunchaku          # FLUX inference optimization
     controlnet-aux    # Advanced ControlNet preprocessors
 
-    # Custom overridden packages
+    # Custom overridden packages (with Darwin fixes)
     gguf              # GGUF quantized model support (critical for FLUX) - custom override for Darwin
+    accelerate        # Model loading optimization - custom override for Darwin
   ] ++ (with python3.pkgs; [
     # PyTorch stack - Override with CUDA-optimized if needed
     torch
@@ -91,7 +93,6 @@ python3.pkgs.buildPythonApplication rec {
 
     # Workflow support dependencies
     opencv-python     # ControlNet preprocessors (Canny, HED, etc.)
-    accelerate        # Model loading optimization
 
     # Additional dependencies for workflow optimization
     timm              # PyTorch Image Models (for controlnet-aux)
