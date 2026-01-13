@@ -1,4 +1,7 @@
-# ComfyUI Flox Build Package
+# ComfyUI Flox Build Package (Historical Branch - v0.6.0)
+
+> **Note**: This is the historical branch maintaining ComfyUI v0.6.0 for compatibility.
+> For the latest version, switch to the `nightly` branch.
 
 A rock-solid, publishable ComfyUI package for Flox with comprehensive dependency management and workflow support.
 
