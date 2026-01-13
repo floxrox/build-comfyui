@@ -4,7 +4,7 @@
 
 python3.pkgs.buildPythonPackage rec {
   pname = "comfyui-embedded-docs";
-  version = "0.3.1";
+  version = "0.4.0";
   format = "wheel";
 
   # Use vendored source from repository

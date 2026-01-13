@@ -81,9 +81,9 @@ This package tracks [ComfyUI upstream releases](https://github.com/comfyanonymou
 | Component | Version | Source |
 |-----------|---------|--------|
 | ComfyUI | 0.9.1 | [GitHub](https://github.com/comfyanonymous/ComfyUI) |
-| Frontend Package | 1.34.9 | [PyPI](https://pypi.org/project/comfyui-frontend-package/) |
-| Workflow Templates | 0.7.63 | [PyPI](https://pypi.org/project/comfyui-workflow-templates/) |
-| Embedded Docs | 0.3.1 | [PyPI](https://pypi.org/project/comfyui-embedded-docs/) |
+| Frontend Package | 1.36.14 | [PyPI](https://pypi.org/project/comfyui-frontend-package/) |
+| Workflow Templates | 0.8.4 | [PyPI](https://pypi.org/project/comfyui-workflow-templates/) |
+| Embedded Docs | 0.4.0 | [PyPI](https://pypi.org/project/comfyui-embedded-docs/) |
 | Spandrel | 0.4.0 | [PyPI](https://pypi.org/project/spandrel/) |
 | **Nunchaku** | **0.16.1** | **[PyPI](https://pypi.org/project/nunchaku/)** (FLUX optimization) |
 | **ControlNet Aux** | **0.0.10** | **[PyPI](https://pypi.org/project/controlnet-aux/)** (Advanced preprocessors) |

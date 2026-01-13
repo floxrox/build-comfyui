@@ -4,7 +4,7 @@
 
 python3.pkgs.buildPythonPackage rec {
   pname = "comfyui-frontend-package";
-  version = "1.34.9";
+  version = "1.36.14";
   format = "wheel";
 
   # Use vendored source from repository
