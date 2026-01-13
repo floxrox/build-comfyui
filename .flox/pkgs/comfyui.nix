@@ -19,14 +19,14 @@
 
 python3.pkgs.buildPythonApplication rec {
   pname = "comfyui";
-  version = "0.6.0";
+  version = "0.9.1";
   format = "other";
 
   src = fetchFromGitHub {
     owner = "comfyanonymous";
     repo = "ComfyUI";
     rev = "v${version}";
-    hash = "sha256-gd02tXWjFJ7kTGF8GT1RfVdzhXu4mM2EoQnAVt83qjQ=";
+    hash = "sha256-tAbXhLoN3tuML3R1AdJ18stleFv4w0nZcUoySP6W9+0=";
   };
 
   # Python dependencies for ComfyUI

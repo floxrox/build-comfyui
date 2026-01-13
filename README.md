@@ -25,6 +25,30 @@ flox install yourcatalog/comfyui
 
 ---
 
+## Branching Strategy
+
+This repository follows a three-branch strategy for version management:
+
+- **`main`** - Stable version (v0.6.0) using standard toolchains from nixpkgs
+- **`nightly`** - Latest upstream version (v0.9.1) with bleeding-edge features
+- **`historical`** - Previous stable version (v0.6.0) maintained for compatibility
+
+### Switching Branches
+
+```bash
+# Latest bleeding-edge version
+git checkout nightly
+flox build comfyui
+
+# Stable version
+git checkout main
+flox build comfyui
+
+# Historical version
+git checkout historical
+flox build comfyui
+```
+
 ## Repository Structure
 
 ```
@@ -56,7 +80,7 @@ This package tracks [ComfyUI upstream releases](https://github.com/comfyanonymou
 
 | Component | Version | Source |
 |-----------|---------|--------|
-| ComfyUI | 0.6.0 | [GitHub](https://github.com/comfyanonymous/ComfyUI) |
+| ComfyUI | 0.9.1 | [GitHub](https://github.com/comfyanonymous/ComfyUI) |
 | Frontend Package | 1.34.9 | [PyPI](https://pypi.org/project/comfyui-frontend-package/) |
 | Workflow Templates | 0.7.63 | [PyPI](https://pypi.org/project/comfyui-workflow-templates/) |
 | Embedded Docs | 0.3.1 | [PyPI](https://pypi.org/project/comfyui-embedded-docs/) |
@@ -84,10 +108,10 @@ Edit `.flox/pkgs/comfyui-base.nix`:
 
 ```nix
 # Change this line:
-version = "0.6.0";
+version = "0.9.1";
 
 # To new version (without 'v' prefix):
-version = "0.6.1";  # or whatever the latest is
+version = "0.9.2";  # or whatever the latest is
 ```
 
 #### 3. Update the Hash
