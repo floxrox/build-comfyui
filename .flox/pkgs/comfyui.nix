@@ -89,6 +89,7 @@ python3.pkgs.buildPythonApplication rec {
     # Utilities
     tqdm
     psutil
+    packaging         # Required for comfy_api.latest (audio nodes)
     huggingface-hub   # Model downloads
 
     # Workflow support dependencies
