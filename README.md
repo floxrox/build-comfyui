@@ -20,7 +20,15 @@ flox publish -o yourcatalog comfyui-base
 ### Install from Your Catalog
 
 ```bash
+# Core ComfyUI
 flox install yourcatalog/comfyui
+
+# Optional: Custom node plugins (Impact Pack for face enhancement)
+flox install yourcatalog/comfyui-plugins
+
+# After installing plugins, activate them:
+comfyui-activate-plugins
+comfyui-download-impact-models  # Download required models
 ```
 
 ---
@@ -57,6 +65,8 @@ flox build comfyui
 ├── comfyui-frontend-package.nix  # Web UI (PyPI package)
 ├── comfyui-workflow-templates.nix # Example workflows (PyPI package)
 ├── comfyui-embedded-docs.nix     # Documentation (PyPI package)
+├── comfyui-plugins.nix           # Custom node plugins (Impact Pack, etc.)
+├── segment-anything.nix          # SAM model support for plugins
 └── spandrel.nix                  # Model loading library
 
 assets/
@@ -87,6 +97,7 @@ This package tracks [ComfyUI upstream releases](https://github.com/comfyanonymou
 | Spandrel | 0.4.0 | [PyPI](https://pypi.org/project/spandrel/) |
 | **Nunchaku** | **0.16.1** | **[PyPI](https://pypi.org/project/nunchaku/)** (FLUX optimization) |
 | **ControlNet Aux** | **0.0.10** | **[PyPI](https://pypi.org/project/controlnet-aux/)** (Advanced preprocessors) |
+| **Impact Pack** | **8.28** | **[GitHub](https://github.com/ltdrdata/ComfyUI-Impact-Pack)** (Face enhancement plugin) |
 
 ### Updating to Latest Upstream
 
