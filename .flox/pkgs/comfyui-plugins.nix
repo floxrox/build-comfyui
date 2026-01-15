@@ -1,10 +1,18 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, python3
-, makeWrapper
-, bash
-}:
+{ pkgs ? import <nixpkgs> {} }:
+
+let
+  # Import nixpkgs at a specific revision for compatibility
+  nixpkgs_pinned = import (builtins.fetchTarball {
+    url = "https://github.com/NixOS/nixpkgs/archive/fe5e41d7ffc0421f0913e8472ce6238ed0daf8e3.tar.gz";
+  }) {
+    config = {
+      allowUnfree = true;
+      cudaSupport = true;
+    };
+  };
+
+  inherit (nixpkgs_pinned) lib stdenv fetchFromGitHub python3 makeWrapper bash;
+in
 
 stdenv.mkDerivation rec {
   pname = "comfyui-plugins";

@@ -1,21 +1,41 @@
-{ lib
-, python3
-, fetchFromGitHub
-, makeWrapper
-, comfyui-frontend-package
-, comfyui-workflow-templates
-, comfyui-workflow-templates-core
-, comfyui-workflow-templates-media-api
-, comfyui-workflow-templates-media-video
-, comfyui-workflow-templates-media-image
-, comfyui-workflow-templates-media-other
-, comfyui-embedded-docs
-, spandrel
-, nunchaku
-, controlnet-aux
-, gguf
-, accelerate
-}:
+{ pkgs ? import <nixpkgs> {} }:
+
+let
+  # Import nixpkgs at a specific revision where PyTorch 2.8.0 is compatible with ComfyUI dependencies
+  # This ensures compatibility with custom PyTorch/TorchVision/TorchAudio builds
+  nixpkgs_pinned = import (builtins.fetchTarball {
+    url = "https://github.com/NixOS/nixpkgs/archive/fe5e41d7ffc0421f0913e8472ce6238ed0daf8e3.tar.gz";
+  }) {
+    config = {
+      allowUnfree = true;  # Required for CUDA packages
+      cudaSupport = true;
+    };
+  };
+
+  inherit (nixpkgs_pinned) lib python3 fetchFromGitHub makeWrapper;
+
+  # Import ComfyUI dependencies using the same pinned nixpkgs
+  # Need to resolve dependencies between packages
+  comfyui-frontend-package = nixpkgs_pinned.callPackage ./comfyui-frontend-package.nix {};
+  comfyui-workflow-templates-core = nixpkgs_pinned.callPackage ./comfyui-workflow-templates-core.nix {};
+  comfyui-workflow-templates-media-api = nixpkgs_pinned.callPackage ./comfyui-workflow-templates-media-api.nix {};
+  comfyui-workflow-templates-media-video = nixpkgs_pinned.callPackage ./comfyui-workflow-templates-media-video.nix {};
+  comfyui-workflow-templates-media-image = nixpkgs_pinned.callPackage ./comfyui-workflow-templates-media-image.nix {};
+  comfyui-workflow-templates-media-other = nixpkgs_pinned.callPackage ./comfyui-workflow-templates-media-other.nix {};
+  comfyui-workflow-templates = nixpkgs_pinned.callPackage ./comfyui-workflow-templates.nix {
+    inherit comfyui-workflow-templates-core
+            comfyui-workflow-templates-media-api
+            comfyui-workflow-templates-media-video
+            comfyui-workflow-templates-media-image
+            comfyui-workflow-templates-media-other;
+  };
+  comfyui-embedded-docs = nixpkgs_pinned.callPackage ./comfyui-embedded-docs.nix {};
+  spandrel = nixpkgs_pinned.callPackage ./spandrel.nix {};
+  nunchaku = nixpkgs_pinned.callPackage ./nunchaku.nix {};
+  controlnet-aux = nixpkgs_pinned.callPackage ./controlnet-aux.nix {};
+  gguf = nixpkgs_pinned.callPackage ./gguf.nix {};
+  accelerate = nixpkgs_pinned.callPackage ./accelerate.nix {};
+in
 
 python3.pkgs.buildPythonApplication rec {
   pname = "comfyui";
