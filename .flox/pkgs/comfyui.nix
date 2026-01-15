@@ -86,8 +86,10 @@ python3.pkgs.buildPythonApplication rec {
     tokenizers
     sentencepiece
     safetensors
-  ]) ++ lib.optionals (!lib.elem python3.stdenv.hostPlatform.system ["aarch64-linux" "aarch64-darwin"]) (with python3.pkgs; [
-    # kornia - excluded on ARM64 due to kornia-rs build crashes
+  ]) ++ lib.optionals false (with python3.pkgs; [
+    # kornia - temporarily disabled due to kornia-rs version incompatibility with pinned nixpkgs
+    # The pinned nixpkgs (for PyTorch 2.8.0) has kornia-rs 0.1.2 but kornia 0.8.1 requires >=0.1.9
+    # This is not critical for ComfyUI functionality
     kornia
   ]) ++ (with python3.pkgs; [
     # Web and async
