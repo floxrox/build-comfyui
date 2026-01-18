@@ -32,10 +32,59 @@ flox install yourcatalog/comfyui-plugins
 # After installing plugins, activate them:
 comfyui-activate-plugins
 comfyui-download-impact-models  # Download required models
+
+# Optional: Impact Subpack (YOLO detection with onnxruntime)
+flox install yourcatalog/comfyui-impact-subpack
+comfyui-activate-impact-subpack
 ```
 
 ---
 
+## Branching Strategy
+
+This repository follows a three-branch rotation strategy for version management:
+
+- **`main`** - Current stable version (v0.6.0) using standard toolchains from nixpkgs
+- **`nightly`** - Latest upstream version (v0.9.1) with bleeding-edge features
+- **`historical`** - Previous stable version (v0.6.0) maintained for compatibility
+
+### Branch Rotation
+
+When new ComfyUI versions are released, branches rotate to maintain three active versions:
+
+```
+When 0.9.2 releases:
+historical (0.6.0) → becomes branch v0.6.0 (preserved forever)
+main (0.6.0)       → becomes historical
+nightly (0.9.1)    → becomes main
+nightly            → updates to 0.9.2
+```
+
+This ensures:
+- Users on `main` get stable, tested versions
+- Bleeding-edge users track `nightly`
+- Conservative users can stay on `historical` for one cycle
+- Specific versions are preserved as branches (`v0.6.0`, `v0.9.1`, etc.)
+
+### Switching Branches
+
+```bash
+# Latest bleeding-edge version
+git checkout nightly
+flox build comfyui
+
+# Current stable version
+git checkout main
+flox build comfyui
+
+# Previous stable (compatibility)
+git checkout historical
+flox build comfyui
+
+# Specific version (after rotation)
+git checkout v0.9.1
+flox build comfyui
+```
 ## Repository Structure
 
 ```
