@@ -12,7 +12,7 @@ This repository contains 16 Nix packages for building and running ComfyUI with F
 ### comfyui.nix
 - **Purpose**: Main ComfyUI application
 - **Version**: 0.9.1 (matches ComfyUI version)
-- **Imports**: 13 packages (all active packages except color-matcher)
+- **Imports**: 13 packages (all active packages except color-matcher and comfyui-plugins)
 - **Build command**: `flox build comfyui`
 - **Binary**: Provides `comfyui` and model download tools
 
