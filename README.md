@@ -75,8 +75,8 @@ flox build comfyui
 ├── comfyui-workflow-templates.nix # Example workflows (PyPI package)
 ├── comfyui-embedded-docs.nix     # Documentation (PyPI package)
 ├── comfyui-plugins.nix           # Custom node plugins (Impact Pack, etc.)
-├── segment-anything.nix          # SAM model support for plugins
-└── spandrel.nix                  # Model loading library
+├── spandrel.nix                  # Model loading library
+└── color-matcher.nix             # Example package (not imported)
 
 assets/
 ├── download-sd15-enhanced.py     # SD 1.5 downloader
