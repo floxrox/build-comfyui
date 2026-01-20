@@ -1,296 +1,265 @@
-# CLAUDE.md
+# Claude Code Assistant Guide for build-comfyui
 
-## Project Overview
+This document provides a quick reference for Claude Code when working with this repository.
 
-ComfyUI build packages for Flox with custom node support and runtime package management.
+## IMPORTANT: Read These First
 
-## Key Packages
+Before working on this repository, you MUST read these authoritative documentation files (in order):
 
-- **comfyui.nix**: Core application with Manager dependencies and uv in PATH
-- **comfyui-manager.nix**: Runtime package manager with UV --system flag fix
-- **comfyui-ultralytics.nix**: YOLO detection Python package
-- **comfyui-impact-subpack.nix**: Impact Subpack with onnxruntime and ultralytics
+1. **`ABOUT_THIS_REPO.md`** - Complete repository philosophy, branching strategy, and build architecture (LODESTAR DOCUMENT)
+2. **`FLOX.md`** - Flox fundamentals and philosophy (LODESTAR DOCUMENT)
+3. **`FLOX-PYTHON.md`** - Flox Python environment setup and runtime configuration (LODESTAR DOCUMENT)
+4. **`NIX_PYTHON_BUILD_GUIDE.md`** - Deep dive into Python packaging with Nix, vendoring strategies (LODESTAR DOCUMENT)
+5. **`REPRODUCIBLE-BUILD-ARCHITECTURE.md`** - Build architecture details (may need updating)
 
-## Critical Patterns
+This CLAUDE.md serves as a quick reference and routing guide. For authoritative information, ALWAYS consult the above documents first.
 
-### OpenCV Standardization
-All packages use `opencv4` to prevent "recursion detected" errors.
+## Repository Overview
 
-### Python Version Management
-- **Current**: Python 3.13 (`python313Packages`)
-- **Location**: Primary references in `comfyui.nix` and `comfyui-impact-subpack.nix`
-- **Inheritance**: Most packages inherit Python from comfyui.nix
-- **To change Python version**:
-  1. Update `python3` and `python313Packages` in comfyui.nix
-  2. Update `python313` references in comfyui-impact-subpack.nix
-  3. Update pytorch package references (e.g., `pytorch-python313-cuda12_8`)
-  4. Rebuild all packages to verify compatibility
-  5. Test Manager and custom nodes still function
-- **Note**: Some packages like pytorch have version-specific builds
+This is a Flox-based build system for ComfyUI using Nix expressions. The repository builds ComfyUI packages that can be published to Flox catalogs and provides reproducible, versioned builds of ComfyUI with all dependencies.
 
-### Activation Scripts Pattern
-Packages provide their own activation scripts that symlink from nix store to user directory:
+**Key Context from ABOUT_THIS_REPO.md:**
+- Default workspace: `$HOME/comfyui-work`
+- Related repo: https://github.com/barstoolbluz/build-comfyui-extras.git (for custom nodes and extras - clone this when needed)
+- Runtime: ComfyUI launches from a Flox environment with service management
+
+## Key Principles
+
+1. **Reproducibility First**: All builds must be reproducible. Use vendored dependencies and fixed-output derivations.
+2. **Version Preservation**: Every ComfyUI release gets preserved in its own branch for future rebuilding.
+3. **Modular Architecture**: Core ComfyUI is separate from plugins, extras, and workflow templates.
+4. **Testing Pipeline**: Changes flow through testing → staging → production branches.
+
+## Branching Strategy
+
+### Current Structure
+- `main`: Stable release (currently v0.9.1)
+- `latest`: Newest version for testing (currently v0.9.2)
+- `v0.x.x`: Historical versions preserved forever
+- `*-testing`: For build validation
+- `*-staging`: For UAT before promotion
+
+### Version Rotation
+When ComfyUI releases a new version:
+1. `latest` → `main`
+2. `main` → `v<version>`
+3. New release → `latest`
+
+## Build Commands
+
+### CRITICAL: Build Approach
+This repository uses **Nix Expression Builds ONLY** (`.flox/pkgs/*.nix` files).
+We do NOT use manifest builds (`[build]` sections) - they failed catastrophically for ComfyUI.
+See NIX_PYTHON_BUILD_GUIDE.md for why this distinction matters.
+
+### Essential Commands
 ```bash
-comfyui-activate-manager        # Links Manager to custom_nodes/
-comfyui-activate-plugins        # Links Impact Pack to custom_nodes/
-comfyui-activate-impact-subpack # Links Impact Subpack to custom_nodes/
-```
-Note: Python packages like ultralytics don't need activation scripts.
+# Build ComfyUI package (uses .flox/pkgs/comfyui.nix)
+flox build comfyui
 
-### Environment Integration Pattern
-Manifest hooks should detect and prompt for activation, not reimplement:
-```bash
-if command -v comfyui-activate-impact-subpack >/dev/null 2>&1; then
-  if [ ! -L "$WORK_DIR/custom_nodes/ComfyUI-Impact-Subpack" ]; then
-    echo "Run: comfyui-activate-impact-subpack"
-  fi
-fi
-```
+# Test the build
+./result-comfyui/bin/comfyui --help
 
-### Manager Dependencies
-Added to comfyui.nix: gitpython, pygithub, rich, typer, toml, chardet, uv
-
-### Nixpkgs Pinning Strategy
-- **Files with pinning**: comfyui.nix, manager, plugins, ultralytics, impact-subpack (5 total)
-- **Keep synchronized**: All 5 files should use the same nixpkgs revision
-- **When to update**:
-  - Security fixes needed
-  - New Python version required
-  - Package build failures
-  - Dependency version conflicts
-- **Update process**:
-  1. Update revision in all 5 files
-  2. Test full rebuild
-  3. Verify no regressions
-
-## Branch Strategy
-
-### Active Branches
-- **main**: Current stable version (currently v0.6.0, core ComfyUI only)
-- **nightly**: Latest upstream version (currently v0.9.1 with Manager, Ultralytics, Impact-Subpack)
-- **historical**: Previous stable for compatibility (currently v0.6.0)
-
-### Branch Rotation Strategy
-When a new ComfyUI version is released (e.g., 0.9.2), branches rotate:
-
-1. **Historical** → Becomes a version-specific branch (e.g., `v0.6.0`)
-2. **Main** → Becomes the new `historical`
-3. **Nightly** → Becomes the new `main`
-4. **Nightly** → Gets updated to the latest version
-
-```bash
-# Example rotation when 0.9.2 releases:
-historical (0.6.0) → git branch v0.6.0 (preserved)
-main (0.6.0)       → historical (0.6.0)
-nightly (0.9.1)    → main (0.9.1)
-nightly (updated)  → nightly (0.9.2)
+# Run in Flox environment
+flox activate -- comfyui
 ```
 
-### Branch Rotation Process
-```bash
-# 1. Create version branch from historical
-git checkout historical
-git checkout -b v0.6.0
-git push origin v0.6.0
+### Updating to New Version
+1. Edit `.flox/pkgs/comfyui.nix` - update version
+2. Run build to get hash mismatch
+3. Update hash in the nix file
+4. Test build succeeds
+5. Update documentation
 
-# 2. Update historical from main
-git checkout historical
-git reset --hard main
-git push --force-with-lease origin historical
+## File Structure
 
-# 3. Update main from nightly
-git checkout main
-git reset --hard nightly
-git push --force-with-lease origin main
+### Core Build Files
+- `.flox/pkgs/comfyui.nix` - Main ComfyUI package
+- `.flox/pkgs/comfyui-plugins.nix` - Impact Pack and other plugins
+- `.flox/pkgs/*.nix` - Supporting packages
+- `.flox/env/manifest.toml` - Runtime environment only (NOT for builds)
 
-# 4. Update nightly with new version
-git checkout nightly
-# Update version in .flox/pkgs/comfyui.nix
-# Update hash, test build
-git commit -m "comfyui: update to v0.9.2"
-git push origin nightly
-```
+### Documentation Structure
 
-### Version Preservation
-- All versions preserved as branches: `v0.6.0`, `v0.9.1`, etc.
-- Users can checkout specific versions: `git checkout v0.9.1`
-- Three actively maintained versions at any time
-- Version branches are frozen (no updates)
+**Primary Sources (READ THESE):**
+- `ABOUT_THIS_REPO.md` - Repository purpose, strategy, branching philosophy, runtime architecture
+- `NIX_PYTHON_BUILD_GUIDE.md` - Python packaging patterns, vendoring, fixed-output derivations
+- `FLOX-PYTHON.md` - Flox Python environment setup, venv management, runtime configuration
+- `FLOX.md` - General Flox patterns and usage (if present)
 
-## Critical Fixes
+**User Documentation:**
+- `README.md` - End-user instructions and version tracking
+- `USAGE.md` - Detailed usage examples
+- `UPDATE.md` - Version update procedures
 
-### UV --system Flag Positioning
-Manager requires UV's `--system` flag AFTER the subcommand:
-- ✅ Correct: `uv pip install --system package`
-- ❌ Wrong: `uv pip --system install package`
+**Reference:**
+- `REPRODUCIBLE-BUILD-ARCHITECTURE.md` - Build architecture details
+- `KNOWN-ISSUES.md` - Platform-specific issues
 
-Fix applied in comfyui-manager.nix using sed patch that adds flag only for install/uninstall.
+## Important Patterns
 
-### Ultralytics Network Test Override
-When building packages that depend on ultralytics, disable network tests:
+### Python Dependencies
 ```nix
-ultralytics-no-tests = python313Packages.ultralytics.overridePythonAttrs (oldAttrs: {
-  doCheck = false;
-  pytestCheckPhase = "true";
-});
+propagatedBuildInputs = [
+  # Flox-specific packages
+  spandrel
+  nunchaku
+  # Standard packages
+] ++ (with python3.pkgs; [
+  torch
+  torchvision
+  # ...
+]);
 ```
 
-## Common Issues
+### Platform-Specific Builds
+```nix
+++ lib.optionals (!lib.elem python3.stdenv.hostPlatform.system ["aarch64-linux" "aarch64-darwin"]) (with python3.pkgs; [
+  kornia  # Exclude on ARM64
+])
+```
 
-1. **"No module named 'rich'"**: Manager dependencies missing from comfyui.nix
-2. **"Neither pip nor uv available"**: FIXED - uv added to PATH via makeWrapper
-3. **UltralyticsDetectorProvider missing**: Install comfyui-impact-subpack package
-4. **"No virtual environment found"**: FIXED - Manager patches uv with `--system` flag
-5. **ModuleNotFoundError for Impact-Subpack**: Use Flox package, not git clone
+## Common Tasks
 
-## Testing Strategy
+### Adding a New Python Dependency
+1. **First read `NIX_PYTHON_BUILD_GUIDE.md`** for vendoring patterns
+2. Add to `propagatedBuildInputs` in `comfyui.nix`
+3. Check if custom build needed (see `spandrel.nix` for example)
+4. Consider vendoring if network-dependent (see NIX_PYTHON_BUILD_GUIDE.md)
+5. Clone https://github.com/barstoolbluz/build-comfyui-extras.git to check for related dependencies
+6. Test on both Linux and Darwin
 
-### Build Testing
+### Updating ComfyUI Version
+1. Check latest release: `curl -s https://api.github.com/repos/Comfy-Org/ComfyUI/releases/latest | jq -r '.tag_name'`
+2. Update version in `comfyui.nix`
+3. Get new hash: `nix-prefetch-url --unpack https://github.com/comfyanonymous/ComfyUI/archive/v<VERSION>.tar.gz`
+4. Update hash in `comfyui.nix`
+5. Build and test
+
+### Creating Historical Branch
 ```bash
-# Core packages
-flox build comfyui comfyui-manager comfyui-impact-subpack
-
-# Supporting packages (spot check)
-flox build spandrel segment-anything controlnet-aux
-
-# Workflow templates (if updated)
-flox build comfyui-workflow-templates
+git checkout main
+git checkout -b v0.9.1
+git push origin v0.9.1
 ```
 
-### Functional Testing
-1. **Start service**: `cd /path/to/comfyui-env && flox activate --start-services`
-2. **Check web UI**: http://localhost:8188
-3. **Test workflows**:
-   - Basic SD 1.5 text-to-image
-   - SDXL with refiner (if models available)
-   - ControlNet workflow (if controlnet-aux installed)
-   - Impact Pack face detection (if activated)
-4. **Verify Manager**:
-   - Can list available nodes
-   - UV commands work (`uv pip list --system`)
-   - Can install a test package
-5. **Check logs**: `flox services logs comfyui | grep -E "ERROR|FAILED"`
+## Testing Requirements
 
-### Integration Testing
-- Activation scripts create proper symlinks: `ls -la ~/comfyui-work/custom_nodes/`
-- Manager can install packages: Test via web UI
-- Impact Subpack nodes appear: Check node list for UltralyticsDetectorProvider
+Before committing:
+1. Build succeeds: `flox build comfyui`
+2. Binary runs: `./result-comfyui/bin/comfyui --help`
+3. Downloads work: `./result-comfyui/bin/comfyui-download`
 
-## Package Support Matrix
+## Known Issues
 
-### v0.9.1+ (nightly branch)
-All packages supported including:
-- **Core**: comfyui, workflow-templates, frontend-package, embedded-docs
-- **Custom Nodes**: comfyui-manager, comfyui-plugins (Impact Pack)
-- **Detection**: comfyui-ultralytics, comfyui-impact-subpack
-- **Tools**: comfy-kitchen
-- **Supporting**: All Python packages (spandrel, segment-anything, etc.)
+### Darwin (macOS)
+- FFmpeg duplicate class warnings (harmless)
+- Some packages need Darwin-specific overrides
 
-### v0.6.0 (main branch)
-Limited package support:
-- **Core**: comfyui, workflow-templates, frontend-package, embedded-docs
-- **Custom Nodes**: comfyui-plugins (Impact Pack) - may have compatibility issues
-- **Supporting**: Python packages (spandrel, segment-anything, etc.)
-- **NOT AVAILABLE**: Manager, Ultralytics, Impact-Subpack, comfy-kitchen
+### ARM64
+- kornia excluded due to kornia-rs build issues
+- May need architecture-specific handling
 
-## Compatibility Matrix
+## Commit Message Conventions
 
-| ComfyUI | Manager | Impact Pack | Impact Subpack | Python | Branch |
-|---------|---------|-------------|----------------|--------|--------|
-| 0.9.1+  | latest  | 8.28        | 1.3.5          | 3.13   | nightly |
-| 0.6.0   | N/A     | 8.28*       | N/A            | 3.13   | main |
+```
+Update ComfyUI to v0.9.3
 
-*Impact Pack in v0.6.0 may have limited functionality without Manager
-
-### Checking Compatibility
-1. **Manager**: Check ltdrdata/ComfyUI-Manager releases for version requirements
-2. **Impact Pack/Subpack**: Review requirements.txt in repositories
-3. **Custom nodes**: Check `__init__.py` for ComfyUI version checks
-4. **Python packages**: Verify no conflicting dependency versions
-
-### Version Pinning
-- Pin Manager to specific commit when ComfyUI has breaking API changes
-- Pin custom nodes when node interface changes
-- Document known working combinations in matrix above
-
-### Version Support Policy
-- **v0.9.1+**: Full support for Manager, Impact-Subpack, and new packages
-- **v0.6.x**: Core ComfyUI only, custom nodes not guaranteed compatible
-- **Migration**: When moving packages from nightly→main, only if v0.6.x can support them
-- **New packages**: Add to nightly first, backport to main only if tested compatible
-
-## Branch Migration Checklist
-
-When nightly → main:
-- [ ] Copy comfyui-manager.nix to main branch
-- [ ] Copy comfyui-ultralytics.nix to main branch
-- [ ] Copy comfyui-impact-subpack.nix to main branch
-- [ ] Update package versions to match main's ComfyUI
-- [ ] Update Python version if needed (see Python Version Management)
-- [ ] Verify Manager dependencies in comfyui.nix
-- [ ] Verify uv in PATH in comfyui.nix
-- [ ] Update compatibility matrix
-- [ ] Test all activation scripts work
-
-## Maintenance Workflow
-
-### Regular Updates (Weekly/As Needed)
-1. Check ComfyUI releases: `curl -s https://api.github.com/repos/comfyanonymous/ComfyUI/releases/latest | jq -r '.tag_name'`
-2. Check Manager updates: `curl -s https://api.github.com/repos/ltdrdata/ComfyUI-Manager/commits/main | head`
-3. Review custom node compatibility in their repos
-4. Update if stable release available
-
-### Update Checklist
-- [ ] Read ComfyUI changelog for breaking changes
-- [ ] Update version and hash in comfyui.nix (see README.md for hash update)
-- [ ] Update PyPI dependencies if requirements.txt changed
-- [ ] Test Manager still works with UV flag fix
-- [ ] Verify custom nodes load correctly
-- [ ] Run test workflows (see Testing Strategy)
-- [ ] Update compatibility matrix
-- [ ] Commit with descriptive message: `comfyui: update to vX.Y.Z`
-- [ ] Tag if stable release: `git tag comfyui-vX.Y.Z`
-- [ ] Publish if tests pass (see Publishing Workflow)
-
-### Dependency Updates
-1. Check requirements.txt: `curl -s https://raw.githubusercontent.com/comfyanonymous/ComfyUI/vX.Y.Z/requirements.txt`
-2. Update PyPI packages in comfyui.nix if versions changed
-3. Test Manager dependencies are still included
-
-### Troubleshooting Updates
-- **Build failures**: Check nixpkgs updates, Python version compatibility
-- **Import errors**: Verify Python dependencies, check `pip list` in environment
-- **Node failures**: Check ComfyUI API changes, review changelog
-- **Manager issues**: Verify UV --system flag patch still applies
+- Updated version and hash in comfyui.nix
+- Tested on Linux x86_64
+- All download scripts functional
+```
 
 ## Publishing Workflow
 
-### When to Publish
-- After ComfyUI stable release (not pre-releases/RCs)
-- After testing all core workflows
-- When fixing critical bugs
-- When adding new custom node packages
+1. Build locally: `flox build comfyui`
+2. Test thoroughly
+3. Commit with descriptive message
+4. Tag if major version: `git tag v0.9.3`
+5. Push to appropriate branch
+6. Publish: `flox publish -o catalog comfyui`
 
-### Publishing Steps
-1. **Ensure git is clean**: `git status`
-2. **Push all changes**: `git push origin <branch>`
-3. **Tag with version**: `git tag comfyui-v0.9.1 && git push --tags`
-4. **Publish packages in order**:
-   ```bash
-   flox publish -o flox comfyui
-   flox publish -o flox comfyui-manager
-   flox publish -o flox comfyui-ultralytics
-   flox publish -o flox comfyui-impact-subpack
-   ```
-5. **Document in commit**: Include breaking changes and migration steps
+## Repository URLs
 
-### Breaking Changes Protocol
-- **Major ComfyUI version**: Consider creating new branch
-- **API changes**: Update all dependent packages first
-- **Python version change**: Test all custom nodes, update pytorch packages
-- **Document migration**: Add notes to commit message or MIGRATION.md
+- Main repo: https://github.com/floxrox/build-comfyui
+- Extras repo: https://github.com/barstoolbluz/build-comfyui-extras.git (clone when working with custom nodes)
+- Upstream ComfyUI: https://github.com/Comfy-Org/ComfyUI
+- Old upstream: https://github.com/comfyanonymous/ComfyUI
 
-### Version Tagging
-- Git tags: `comfyui-vX.Y.Z` (matches ComfyUI version)
-- Package version: In .nix file, no 'v' prefix (e.g., `version = "0.9.1"`)
-- Catalog naming: `flox/comfyui` (organization namespace)
+## When to Consult Which Document
+
+### Use ABOUT_THIS_REPO.md for:
+- Understanding the branching strategy and version rotation
+- Learning about the runtime environment setup
+- Understanding the relationship with build-comfyui-extras
+- Getting the big picture of the project architecture
+
+### Use NIX_PYTHON_BUILD_GUIDE.md for:
+- **CRITICAL**: Understanding the two separate build systems (Nix expressions vs Manifest builds)
+- Why manifest builds failed catastrophically for ComfyUI
+- Python packaging patterns using buildPythonApplication
+- Anti-patterns to avoid (no venv/pip in builds, no git clone, no runtime vars)
+- Fixed-output derivation patterns for missing packages
+- The correct approach: Nix expressions in `.flox/pkgs/`
+
+### Use FLOX.md for:
+- Understanding Flox fundamentals and philosophy
+- General Flox environment management
+- Service definitions and management
+- Flox build patterns and best practices
+
+### Use FLOX-PYTHON.md for:
+- Setting up Flox Python environments
+- Understanding venv bootstrapping in hooks
+- Runtime environment configuration
+- Python version management in Flox
+- Python-specific Flox patterns
+
+### Use REPRODUCIBLE-BUILD-ARCHITECTURE.md for:
+- Understanding the three-tier packaging architecture
+- Fixed-output derivation patterns
+- Vendoring strategies and implementation
+- Network isolation and sandbox requirements
+
+### Use README.md for:
+- Current version information
+- User-facing build instructions
+- Publishing workflows
+- Version update procedures
+
+## Important Notes
+
+1. **Understand the build system** - Nix expressions in `.flox/pkgs/` ONLY, never manifest builds
+2. **Consult documentation** - Read ABOUT_THIS_REPO.md for strategy, NIX_PYTHON_BUILD_GUIDE.md for build approach
+3. **Never skip testing** - Always run `flox build` before pushing
+4. **Preserve reproducibility** - Use vendoring and fixed-output derivations (see NIX_PYTHON_BUILD_GUIDE.md)
+5. **Document changes** - Update README.md when versions change
+6. **Check dependencies** - Verify requirements.txt changes in upstream
+7. **Test cross-platform** - Ensure builds work on Linux and Darwin when possible
+8. **Check related repos** - Clone and examine https://github.com/barstoolbluz/build-comfyui-extras.git for custom nodes/extras integration
+9. **Separation of concerns** - Build time (Nix expressions) ≠ Runtime (manifest.toml)
+
+## Helper Scripts
+
+### Check for Updates
+```bash
+CURRENT=$(grep 'version =' .flox/pkgs/comfyui.nix | head -1 | sed 's/.*"\(.*\)".*/\1/')
+LATEST=$(curl -s https://api.github.com/repos/Comfy-Org/ComfyUI/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+echo "Current: $CURRENT, Latest: $LATEST"
+```
+
+### Quick Version Info
+```bash
+git branch --show-current
+grep 'version =' .flox/pkgs/comfyui.nix | head -1
+```
+
+## Contact & Resources
+
+- Flox documentation: https://flox.dev/docs
+- Nix Python guide: nixpkgs manual
+- ComfyUI issues: upstream GitHub
+
+---
+
+*This file helps Claude Code understand the repository structure and maintain consistency across all operations.*
