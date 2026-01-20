@@ -7,14 +7,14 @@ A rock-solid, publishable ComfyUI package for Flox with comprehensive dependency
 ### Build the Package
 
 ```bash
-flox build comfyui-base
+flox build comfyui
 ```
 
 ### Publish to Your Catalog
 
 ```bash
 flox auth login
-flox publish -o yourcatalog comfyui-base
+flox publish -o yourcatalog comfyui
 ```
 
 ### Install from Your Catalog
@@ -35,25 +35,34 @@ comfyui-download-impact-models  # Download required models
 
 ## Branching Strategy
 
-This repository follows a three-branch strategy for version management:
+This repository follows a structured branching strategy for version management:
 
-- **`main`** - Stable version (v0.6.0) using standard toolchains from nixpkgs
-- **`nightly`** - Latest upstream version (v0.9.1) with bleeding-edge features
-- **`historical`** - Previous stable version (v0.6.0) maintained for compatibility
+- **`main`** - Current stable version (v0.9.1) - the recommended version for most users
+- **`latest`** - Newest upstream version (v0.9.2) - for testing new features
+- **`v0.x.x`** - Historical versions (e.g., `v0.6.0`) - preserved for compatibility
+- **`main-testing`/`main-staging`** - Testing and staging branches for main
+- **`latest-testing`/`latest-staging`** - Testing and staging branches for latest
+
+### Version Rotation Strategy
+
+When a new ComfyUI version is released:
+1. Current `latest` becomes the new `main`
+2. Current `main` becomes a historical branch (e.g., `v0.9.1`)
+3. New version becomes `latest`
 
 ### Switching Branches
 
 ```bash
-# Latest bleeding-edge version
-git checkout nightly
-flox build comfyui
-
-# Stable version
+# Current stable version (recommended)
 git checkout main
 flox build comfyui
 
-# Historical version
-git checkout historical
+# Newest version (testing)
+git checkout latest
+flox build comfyui
+
+# Historical versions
+git checkout v0.6.0
 flox build comfyui
 ```
 
@@ -61,7 +70,7 @@ flox build comfyui
 
 ```
 .flox/pkgs/
-├── comfyui-base.nix              # Main ComfyUI package
+├── comfyui.nix              # Main ComfyUI package
 ├── comfyui-frontend-package.nix  # Web UI (PyPI package)
 ├── comfyui-workflow-templates.nix # Example workflows (PyPI package)
 ├── comfyui-embedded-docs.nix     # Documentation (PyPI package)
@@ -90,7 +99,8 @@ This package tracks [ComfyUI upstream releases](https://github.com/comfyanonymou
 
 | Component | Version | Source |
 |-----------|---------|--------|
-| ComfyUI | 0.9.1 | [GitHub](https://github.com/comfyanonymous/ComfyUI) |
+| ComfyUI (main) | 0.9.1 | [GitHub](https://github.com/comfyanonymous/ComfyUI) |
+| ComfyUI (latest) | 0.9.2 | [GitHub](https://github.com/comfyanonymous/ComfyUI) |
 | Frontend Package | 1.36.14 | [PyPI](https://pypi.org/project/comfyui-frontend-package/) |
 | Workflow Templates | 0.8.4 | [PyPI](https://pypi.org/project/comfyui-workflow-templates/) |
 | Embedded Docs | 0.4.0 | [PyPI](https://pypi.org/project/comfyui-embedded-docs/) |
@@ -115,7 +125,7 @@ curl -s https://pypi.org/pypi/comfyui-embedded-docs/json | jq -r '.info.version'
 
 #### 2. Update ComfyUI Core
 
-Edit `.flox/pkgs/comfyui-base.nix`:
+Edit `.flox/pkgs/comfyui.nix`:
 
 ```nix
 # Change this line:
@@ -130,11 +140,11 @@ version = "0.9.2";  # or whatever the latest is
 Build will fail with the actual hash - copy it:
 
 ```bash
-flox build comfyui-base
+flox build comfyui
 # Error: hash mismatch, expected: sha256-XXXXXXXX
 # Got:    sha256-YYYYYYYY
 
-# Update the hash in comfyui-base.nix:
+# Update the hash in comfyui.nix:
 hash = "sha256-YYYYYYYY";
 ```
 
@@ -142,7 +152,7 @@ hash = "sha256-YYYYYYYY";
 
 ```bash
 nix-prefetch-url --unpack https://github.com/comfyanonymous/ComfyUI/archive/v0.3.76.tar.gz
-# Copy the resulting hash to comfyui-base.nix
+# Copy the resulting hash to comfyui.nix
 ```
 
 #### 4. Update Dependency Packages
@@ -165,13 +175,13 @@ Update each `.flox/pkgs/*.nix` file if versions changed (same hash update proces
 #### 5. Build and Test
 
 ```bash
-flox build comfyui-base
+flox build comfyui
 
 # Test the binary
-./result-comfyui-base/bin/comfyui --help
+./result-comfyui/bin/comfyui --help
 
 # Test download tools
-./result-comfyui-base/bin/comfyui-download
+./result-comfyui/bin/comfyui-download
 ```
 
 #### 6. Update Version Table
@@ -182,11 +192,11 @@ Update the "Current Versions" table in this README with new versions.
 
 ```bash
 git add .
-git commit -m "Update ComfyUI to v0.6.1"
-git tag v0.6.1
+git commit -m "Update ComfyUI to v0.9.3"
+git tag v0.9.3
 git push && git push --tags
 
-flox publish -o yourcatalog comfyui-base
+flox publish -o yourcatalog comfyui
 ```
 
 ### Building Older Versions
@@ -195,15 +205,15 @@ To build a specific older version:
 
 1. **Checkout the tagged version:**
    ```bash
-   git checkout v0.6.0
-   flox build comfyui-base
+   git checkout v0.9.1  # or v0.6.0, etc.
+   flox build comfyui
    ```
 
-2. **Or manually edit the version** in `.flox/pkgs/comfyui-base.nix` and update hashes.
+2. **Or manually edit the version** in `.flox/pkgs/comfyui.nix` and update hashes.
 
 3. **Create version-specific branches** (optional):
    ```bash
-   git checkout -b v0.6.x  # For 0.6.x series
+   git checkout -b v0.9.x  # For 0.9.x series
    # Make updates specific to this version
    ```
 
@@ -215,7 +225,7 @@ Create a helper script to check for updates:
 #!/usr/bin/env bash
 # check-updates.sh
 
-CURRENT_VERSION="0.6.0"
+CURRENT_VERSION="0.9.1"
 LATEST_VERSION=$(curl -s https://api.github.com/repos/comfyanonymous/ComfyUI/releases/latest | jq -r '.tag_name' | sed 's/^v//')
 
 if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
@@ -254,14 +264,14 @@ See [KNOWN-ISSUES.md](./KNOWN-ISSUES.md) for platform-specific issues and workar
 ### Recommended Workflow
 
 1. **Track stable releases** - Only update when ComfyUI releases a new stable version
-2. **Tag your builds** - Create git tags matching upstream (e.g., `v0.6.0`)
+2. **Tag your builds** - Create git tags matching upstream (e.g., `v0.9.1`)
 3. **Test before publishing** - Always build and test locally first
 4. **Document changes** - Note any breaking changes or new dependencies in commit messages
 
 ### Version Naming
 
 - **Git tags**: Match upstream with `v` prefix (e.g., `v0.6.0`)
-- **Package version**: In Nix expression, no `v` prefix (e.g., `0.6.0`)
+- **Package version**: In Nix expression, no `v` prefix (e.g., `0.9.1`)
 - **Published name**: Use catalog namespacing (e.g., `yourcatalog/comfyui`)
 
 ---
