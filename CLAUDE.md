@@ -1,10 +1,27 @@
 # Claude Code Assistant Guide for build-comfyui
 
-This document provides context and guidelines for Claude Code when working with this repository.
+This document provides a quick reference for Claude Code when working with this repository.
+
+## IMPORTANT: Read These First
+
+Before working on this repository, you MUST read these authoritative documentation files (in order):
+
+1. **`ABOUT_THIS_REPO.md`** - Complete repository philosophy, branching strategy, and build architecture (LODESTAR DOCUMENT)
+2. **`FLOX.md`** - Flox fundamentals and philosophy (LODESTAR DOCUMENT)
+3. **`FLOX-PYTHON.md`** - Flox Python environment setup and runtime configuration (LODESTAR DOCUMENT)
+4. **`NIX_PYTHON_BUILD_GUIDE.md`** - Deep dive into Python packaging with Nix, vendoring strategies (LODESTAR DOCUMENT)
+5. **`REPRODUCIBLE-BUILD-ARCHITECTURE.md`** - Build architecture details (may need updating)
+
+This CLAUDE.md serves as a quick reference and routing guide. For authoritative information, ALWAYS consult the above documents first.
 
 ## Repository Overview
 
 This is a Flox-based build system for ComfyUI using Nix expressions. The repository builds ComfyUI packages that can be published to Flox catalogs and provides reproducible, versioned builds of ComfyUI with all dependencies.
+
+**Key Context from ABOUT_THIS_REPO.md:**
+- Default workspace: `$HOME/comfyui-work`
+- Related repo: `~/dev/testes/build-comfyui-extras/` (for custom nodes and extras)
+- Runtime: ComfyUI launches from a Flox environment with service management
 
 ## Key Principles
 
@@ -56,11 +73,22 @@ flox activate -- comfyui
 - `.flox/pkgs/comfyui-plugins.nix` - Impact Pack and other plugins
 - `.flox/pkgs/*.nix` - Supporting packages
 
-### Documentation
-- `ABOUT_THIS_REPO.md` - Repository purpose and strategy
-- `NIX_PYTHON_BUILD_GUIDE.md` - Python packaging in Nix
-- `FLOX-PYTHON.md` - Flox Python environment setup
-- `README.md` - User-facing documentation
+### Documentation Structure
+
+**Primary Sources (READ THESE):**
+- `ABOUT_THIS_REPO.md` - Repository purpose, strategy, branching philosophy, runtime architecture
+- `NIX_PYTHON_BUILD_GUIDE.md` - Python packaging patterns, vendoring, fixed-output derivations
+- `FLOX-PYTHON.md` - Flox Python environment setup, venv management, runtime configuration
+- `FLOX.md` - General Flox patterns and usage (if present)
+
+**User Documentation:**
+- `README.md` - End-user instructions and version tracking
+- `USAGE.md` - Detailed usage examples
+- `UPDATE.md` - Version update procedures
+
+**Reference:**
+- `REPRODUCIBLE-BUILD-ARCHITECTURE.md` - Build architecture details
+- `KNOWN-ISSUES.md` - Platform-specific issues
 
 ## Important Patterns
 
@@ -88,9 +116,11 @@ propagatedBuildInputs = [
 ## Common Tasks
 
 ### Adding a New Python Dependency
-1. Add to `propagatedBuildInputs` in `comfyui.nix`
-2. Check if custom build needed (see `spandrel.nix` for example)
-3. Test on both Linux and Darwin
+1. **First read `NIX_PYTHON_BUILD_GUIDE.md`** for vendoring patterns
+2. Add to `propagatedBuildInputs` in `comfyui.nix`
+3. Check if custom build needed (see `spandrel.nix` for example)
+4. Consider vendoring if network-dependent (see NIX_PYTHON_BUILD_GUIDE.md)
+5. Test on both Linux and Darwin
 
 ### Updating ComfyUI Version
 1. Check latest release: `curl -s https://api.github.com/repos/Comfy-Org/ComfyUI/releases/latest | jq -r '.tag_name'`
@@ -148,13 +178,55 @@ Update ComfyUI to v0.9.3
 - Upstream ComfyUI: https://github.com/Comfy-Org/ComfyUI
 - Old upstream: https://github.com/comfyanonymous/ComfyUI
 
+## When to Consult Which Document
+
+### Use ABOUT_THIS_REPO.md for:
+- Understanding the branching strategy and version rotation
+- Learning about the runtime environment setup
+- Understanding the relationship with build-comfyui-extras
+- Getting the big picture of the project architecture
+
+### Use NIX_PYTHON_BUILD_GUIDE.md for:
+- Python packaging patterns and best practices
+- Vendoring dependencies for reproducibility
+- Fixed-output derivation patterns
+- Handling problematic Python packages
+- Understanding the three-tier Python packaging approach
+
+### Use FLOX.md for:
+- Understanding Flox fundamentals and philosophy
+- General Flox environment management
+- Service definitions and management
+- Flox build patterns and best practices
+
+### Use FLOX-PYTHON.md for:
+- Setting up Flox Python environments
+- Understanding venv bootstrapping in hooks
+- Runtime environment configuration
+- Python version management in Flox
+- Python-specific Flox patterns
+
+### Use REPRODUCIBLE-BUILD-ARCHITECTURE.md for:
+- Understanding the three-tier packaging architecture
+- Fixed-output derivation patterns
+- Vendoring strategies and implementation
+- Network isolation and sandbox requirements
+
+### Use README.md for:
+- Current version information
+- User-facing build instructions
+- Publishing workflows
+- Version update procedures
+
 ## Important Notes
 
-1. **Never skip testing** - Always run `flox build` before pushing
-2. **Preserve reproducibility** - Don't use floating versions or unpinned dependencies
-3. **Document changes** - Update README.md when versions change
-4. **Check dependencies** - Verify requirements.txt changes in upstream
-5. **Test cross-platform** - Ensure builds work on Linux and Darwin when possible
+1. **Consult documentation** - Read ABOUT_THIS_REPO.md for strategy, NIX_PYTHON_BUILD_GUIDE.md for technical patterns
+2. **Never skip testing** - Always run `flox build` before pushing
+3. **Preserve reproducibility** - Use vendoring and fixed-output derivations (see NIX_PYTHON_BUILD_GUIDE.md)
+4. **Document changes** - Update README.md when versions change
+5. **Check dependencies** - Verify requirements.txt changes in upstream
+6. **Test cross-platform** - Ensure builds work on Linux and Darwin when possible
+7. **Check related repos** - Consider impacts on `build-comfyui-extras` repository
 
 ## Helper Scripts
 
