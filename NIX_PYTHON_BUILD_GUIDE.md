@@ -1,86 +1,64 @@
 # Nix Python Application Build Guide
 ## Lessons from ComfyUI: What Works, What Doesn't, and Why
 
-> **Purpose**: A practical reference to avoid catastrophic build failures and apply proven patterns when packaging Python applications with Nix/Flox.
+> **Purpose**: Document the correct way to build Python applications with Nix/Flox, based on actual working patterns and catastrophic failures.
 
 ---
 
-## 🔴 CRITICAL: Nix Expressions vs Manifest Builds
+## 🔴 CRITICAL: Two Completely Separate Build Systems
 
-### The Primary Approach: Nix Expressions with `flox build`
+Flox supports two **entirely independent** build systems:
 
-**USE THIS**: Create proper Nix expressions (`.nix` files) and reference them from your manifest:
+### 1. Nix Expression Builds (The Solution for Complex Apps)
+- Put `.nix` files in `.flox/pkgs/`
+- Git add them
+- Run `flox build <name>`
+- **NO manifest involvement whatsoever**
+- This is how professional packages are built
 
-```toml
-[build]
-[build.myapp]
-expression = """
-  (import ./pkgs/myapp.nix {
-    inherit lib python3 fetchFromGitHub makeWrapper;
-  })
-"""
-```
-
-**NOT THIS**: Inline shell commands in manifest builds will fail spectacularly:
-
-```toml
-[build]
-[build.myapp]
-command = """
-  # This WILL fail with permission errors, unbound variables, etc.
-  git clone ...
-  pip install ...
-"""
-```
-
-**Why**: Nix expressions respect the sandbox, use proper dependency management, and follow declarative patterns. Shell commands fight the system and break reproducibility.
+### 2. Manifest Builds (Failed for ComfyUI)
+- Inline bash scripts in `[build.name]` sections
+- Uses `command` field only
+- Good for simple scripts, NOT complex applications
+- This approach failed catastrophically for ComfyUI
 
 ---
 
-## 🎯 Quick Reference: Decision Tree
+## 🎯 The Correct Approach: Nix Expressions in `.flox/pkgs/`
 
-```
-Building a Python app with Flox + Nix?
-├── ALWAYS → Create a .nix file with buildPythonApplication/Package
-├── Reference it → Use expression = "(import ./pkg.nix {...})" in manifest
-├── Has non-standard structure? → Set format = "other"
-├── Has problematic dependencies?
-│   ├── Not in nixpkgs? → Create FOD package in separate .nix
-│   ├── Platform issues? → Create override in separate .nix
-│   └── Complex requirements? → Multiple .nix files
-└── Needs custom build? → Use Nix phases, NOT shell scripts
-```
+### Step 1: Create Your Nix Expression
 
----
-
-## ✅ PROVEN PATTERNS (Use These!)
-
-### 1. Basic Python Application Structure
+Create `.flox/pkgs/comfyui.nix`:
 
 ```nix
 { lib, python3, fetchFromGitHub, makeWrapper }:
 
 python3.pkgs.buildPythonApplication rec {
-  pname = "myapp";
-  version = "1.0.0";
-  format = "other";  # For non-standard apps
+  pname = "comfyui";
+  version = "0.9.1";
+  format = "other";  # For non-standard Python apps
 
   src = fetchFromGitHub {
-    owner = "owner";
-    repo = "repo";
+    owner = "comfyanonymous";
+    repo = "ComfyUI";
     rev = "v${version}";
     hash = "sha256-xxx";
   };
 
   propagatedBuildInputs = with python3.pkgs; [
-    # Dependencies here
+    # Python dependencies
+    torch
+    torchvision
+    torchaudio
+    numpy
+    # ... etc
   ];
 
   nativeBuildInputs = [ makeWrapper ];
 
-  dontBuild = true;  # For interpreted code
-  doCheck = false;   # Skip tests if not needed
-  dontWrapPythonPrograms = true;  # Custom wrapper
+  dontBuild = true;
+  doCheck = false;
+  dontWrapPythonPrograms = true;
 
   installPhase = ''
     runHook preInstall
@@ -100,52 +78,62 @@ python3.pkgs.buildPythonApplication rec {
 }
 ```
 
-### 2. Dependency Management Pattern
+### Step 2: Build It
+
+```bash
+# Git add your Nix files
+git add .flox/pkgs/*.nix
+
+# Build
+flox build comfyui
+
+# Test
+./result-comfyui/bin/comfyui
+```
+
+That's it. No manifest involvement. No `[build]` sections. Just Nix expressions.
+
+---
+
+## ✅ PROVEN PATTERNS (What Actually Works)
+
+### 1. Project Structure for Nix Expression Builds
+
+```
+project/
+├── .flox/
+│   ├── env/
+│   │   └── manifest.toml    # manifest is completely empty
+│   └── pkgs/                 # Nix expressions go here
+│       ├── myapp.nix
+│       ├── dependency1.nix
+│       └── override.nix
+```
+
+### 2. Dependency Management
 
 ```nix
 propagatedBuildInputs = [
-  # Layer 1: Custom FOD packages
-  myCustomPackage
+  # Custom FOD packages
+  (import ./spandrel.nix { inherit lib python3; })
 
-  # Layer 2: Overridden packages
+  # Overridden packages
   (python3.pkgs.somePackage.overridePythonAttrs (old: {
     doCheck = false;
   }))
 
-  # Layer 3: Standard nixpkgs
+  # Standard nixpkgs
 ] ++ (with python3.pkgs; [
   numpy
   scipy
-
-  # Platform-specific
-]) ++ lib.optionals stdenv.isLinux (with python3.pkgs; [
-  linux-only-package
-]) ++ lib.optionals (!stdenv.isDarwin) (with python3.pkgs; [
-  breaks-on-darwin
 ]);
 ```
 
-### 3. Package Override Pattern
+### 3. Fixed-Output Derivation (FOD) for Missing Packages
+
+Create `.flox/pkgs/missing-package.nix`:
 
 ```nix
-# mypackage-override.nix
-{ python3Packages, stdenv }:
-
-python3Packages.problemPackage.overridePythonAttrs (oldAttrs: {
-  # Only override what's broken
-  doCheck = !stdenv.isDarwin;
-
-  # Preserve and extend metadata
-  meta = oldAttrs.meta // {
-    knownIssues = ["Test fails on Darwin"];
-  };
-})
-```
-
-### 4. Fixed-Output Derivation (FOD) Pattern
-
-```nix
-# For packages not in nixpkgs
 { lib, python3 }:
 
 python3.pkgs.buildPythonPackage rec {
@@ -154,63 +142,43 @@ python3.pkgs.buildPythonPackage rec {
   pyproject = true;
 
   # Pre-downloaded source
-  src = ./sources/${pname}-${version}.tar.gz;
+  src = ../sources/${pname}-${version}.tar.gz;
 
   build-system = with python3.pkgs; [
     setuptools
-  ];
-
-  propagatedBuildInputs = with python3.pkgs; [
-    # Dependencies
   ];
 
   doCheck = false;
 }
 ```
 
-### 5. Proper Wrapper Pattern
-
-```nix
-# Create Python environment properly
-pythonEnv="${python3.withPackages (ps: propagatedBuildInputs)}"
-
-# Use makeWrapper with --suffix for overridability
-makeWrapper ${python3}/bin/python3 $out/bin/myapp \
-  --add-flags "$out/share/myapp/main.py" \
-  --suffix PYTHONPATH : "$pythonEnv/${python3.sitePackages}"
-```
-
 ---
 
-## ❌ ANTI-PATTERNS (Never Do These!)
+## ❌ ANTI-PATTERNS (What Failed Catastrophically)
 
-### 0. ❌ The Manifest Build Command Anti-Pattern (THIS IS THE BIG ONE!)
+### 1. ❌ Manifest Builds for Complex Applications
 
 ```toml
 [build]
-[build.myapp]
-# THIS WILL FAIL CATASTROPHICALLY
+[build.comfyui]
+# THIS FAILED SPECTACULARLY
 command = """
   git clone https://github.com/... $TMPDIR/src
   python3 -m venv $out/venv
   $out/venv/bin/pip install ...
-  # Any shell scripting here is WRONG
 """
 ```
 
-**Why it fails**:
-- Shell commands are NOT Nix expressions
+**Why it failed**:
+- Manifest builds are for simple scripts, not applications
+- No access to Nix Python infrastructure
 - Violates sandbox (network access, permissions)
-- Runtime variables ($FLOX_ENV_CACHE) don't exist at build time
-- Non-reproducible and non-deterministic
-- Fights every Nix principle
+- Runtime variables ($FLOX_ENV_CACHE) undefined at build time
 
-**Instead**: ALWAYS use `expression = "(import ./pkg.nix {...})"` with proper Nix files
-
-### 1. ❌ The Venv/Pip Anti-Pattern (In Any Context)
+### 2. ❌ Using Venv/Pip in Any Nix Context
 
 ```bash
-# NEVER DO THIS - Not in Nix, not in manifest builds
+# NEVER DO THIS
 python -m venv $out/venv
 $out/venv/bin/pip install -r requirements.txt
 ```
@@ -218,139 +186,68 @@ $out/venv/bin/pip install -r requirements.txt
 **Why it fails**:
 - Breaks reproducibility
 - Fights Nix's package management
-- Creates non-deterministic builds
-- Pip downloads at build time = network sandbox violation
+- Network access forbidden in sandbox
+- Non-deterministic
 
-**Instead**: Use `propagatedBuildInputs` with Nix Python packages
-
-### 2. ❌ The Git Clone Anti-Pattern
+### 3. ❌ Git Clone in Builds
 
 ```bash
-# FAILS SPECTACULARLY
-git clone https://github.com/... /comfyui-src  # Permission denied!
-# OR
-git clone https://github.com/... $TMPDIR/src   # If TMPDIR not expanded properly
+# FAILS
+git clone https://github.com/... /comfyui-src
 ```
 
 **Why it fails**:
-- Network access forbidden in sandbox (in some build modes)
+- Network access forbidden in pure builds
+- Permission errors
 - Non-reproducible
-- Permission errors when trying to write to root paths
-- Path variable expansion issues
 
-**Instead**: Use `fetchFromGitHub` or pre-download sources
+**Instead**: Use `fetchFromGitHub` in Nix expressions
 
-### 3. ❌ The Environment Variable Anti-Pattern
+### 4. ❌ Runtime Environment Variables in Build Scripts
 
 ```bash
-# BROKEN - THESE DON'T EXIST DURING BUILD
-if [ -n "$FLOX_ENV_CACHE" ]; then
+# BROKEN
+if [ -n "$FLOX_ENV_CACHE" ]; then  # Doesn't exist at build time
   # This will fail
 fi
 ```
 
 **Why it fails**:
 - Build-time ≠ Runtime
-- Environment variables undefined in sandbox
-- `unbound variable` errors
-
-**Instead**: Use Nix variables like `$out`, `$src`
-
-### 4. ❌ The Complex Shell Script Anti-Pattern
-
-```nix
-command = """
-  # 100+ lines of fragile shell commands
-  mkdir -p ...
-  cd ...
-  if [ ... ]; then
-    pip install ...
-  fi
-  # etc...
-"""
-```
-
-**Why it fails**:
-- Any step fails → entire build fails
-- Hard to debug
-- Not idiomatic Nix
-
-**Instead**: Use Nix phases and functions
-
-### 5. ❌ The Conditional PYTHONPATH Anti-Pattern
-
-```bash
-# TERRIBLE LOGIC
-if [ -d "$dir/torch" ]; then
-  export PYTHONPATH="$dir:${PYTHONPATH}"
-fi
-```
-
-**Why it fails**:
-- Assumes package structure
-- Brittle detection
-- Misses packages without expected subdirs
-
-**Instead**: Always add full site-packages or use `withPackages`
-
-### 6. ❌ The Store Path Hardcoding Anti-Pattern
-
-```nix
-comfyui.store-path = "/nix/store/hash-package-version"
-```
-
-**Why it fails**:
-- Store paths are outputs, not inputs
-- Breaks after garbage collection
-- Non-portable
-
-**Instead**: Let Nix manage store paths
+- These variables don't exist in build sandbox
 
 ---
 
 ## 🎓 Key Principles
 
-### 1. **Nix is Declarative**
-- Describe the END STATE, not the steps
-- No imperative commands during build
-- Let Nix handle the "how"
+### 1. **Separation of Concerns**
+- **Build time**: Nix expressions in `.flox/pkgs/`
+- **Runtime**: Environment configuration in `manifest.toml`
+- These are completely separate systems
 
-### 2. **Respect the Sandbox**
-- No network access
-- No absolute paths outside build dir
-- No runtime environment assumptions
+### 2. **Use the Right Tool**
+- Complex applications → Nix expressions
+- Simple scripts → Manifest builds (maybe)
+- Python apps → Always use `buildPythonApplication`
 
-### 3. **Use Nix's Python Infrastructure**
-- `buildPythonPackage` for libraries
-- `buildPythonApplication` for executables
-- `withPackages` for environments
-- `overridePythonAttrs` for fixes
-
-### 4. **Separate Concerns**
-- One package per .nix file
-- Clear dependency hierarchy
-- Modular, composable builds
-
-### 5. **Keep It Simple**
-- Complex shell scripts = fragile builds
-- Use Nix patterns, not workarounds
-- If it feels hacky, it probably is
+### 3. **Respect the Nix Way**
+- Declarative, not imperative
+- No network access during builds
+- Use Nix's Python infrastructure
+- Let Nix handle dependency management
 
 ---
 
 ## 📋 Build Checklist
 
 Before building:
+- [ ] Is your `.nix` file in `.flox/pkgs/`?
 - [ ] Using `buildPythonApplication` or `buildPythonPackage`?
-- [ ] Source fetched with `fetchFromGitHub` or similar?
+- [ ] Source fetched with `fetchFromGitHub`?
 - [ ] Dependencies in `propagatedBuildInputs`?
 - [ ] No `pip install` commands?
 - [ ] No `git clone` in build?
-- [ ] No hardcoded `/nix/store` paths?
-- [ ] Platform-specific issues handled?
-- [ ] Using `makeWrapper` for executables?
-- [ ] No runtime env vars in build script?
-- [ ] Following Nix Python conventions?
+- [ ] Git added your `.nix` files?
 
 ---
 
@@ -358,140 +255,45 @@ Before building:
 
 ### When build fails:
 
-1. **Check the error carefully**
-   - "Permission denied" → Trying to write outside build dir
-   - "unbound variable" → Runtime var used in build
-   - "Network access denied" → Using git/curl/wget in build
+1. **Check the error**:
+   - "Permission denied" → Writing outside build dir
+   - "unbound variable" → Runtime var in build
+   - "Network access denied" → Using git/curl in build
 
-2. **Simplify**
-   - Remove complexity
-   - Test minimal version
-   - Add features incrementally
-
-3. **Use Nix tools**
-   - `nix-build -K` to keep failed build
-   - `nix repl` to test expressions
-   - `nix-store --query --tree` for dependencies
-
-4. **Common fixes**:
+2. **Common fixes**:
    - `doCheck = false` for broken tests
    - `format = "other"` for non-standard packages
    - Override packages with issues
    - Create FOD for missing packages
 
----
-
-## 📚 Complete Workflow with Nix Expressions
-
-### Step 1: Create Your Nix Expression
-
-Create `pkgs/myapp.nix`:
-
-```nix
-{ lib, python3, fetchFromGitHub, makeWrapper }:
-
-python3.pkgs.buildPythonApplication rec {
-  pname = "myapp";
-  version = "1.0.0";
-  format = "other";  # For non-standard structure
-
-  src = fetchFromGitHub {
-    owner = "owner";
-    repo = "repo";
-    rev = "v${version}";
-    hash = "sha256-xxx";
-  };
-
-  propagatedBuildInputs = with python3.pkgs; [
-    # Your dependencies
-  ];
-
-  # ... rest of build configuration
-}
-```
-
-### Step 2: Reference in Manifest
-
-In `manifest.toml`:
-
-```toml
-[build]
-[build.myapp]
-# ALWAYS use expression, NOT command
-expression = """
-  (import ./pkgs/myapp.nix {
-    inherit lib python3 fetchFromGitHub makeWrapper;
-  })
-"""
-```
-
-### Step 3: Build with Flox
-
-```bash
-# Build your package
-flox build myapp
-
-# Test the build
-./result/bin/myapp
-
-# Install in environment
-[install]
-myapp.pkg-path = "path/to/built/package"
-```
-
-### Complete Example: Multi-Package Project
-
-Directory structure:
-```
-project/
-├── .flox/
-│   ├── env/
-│   │   └── manifest.toml
-│   └── sources/        # Pre-downloaded vendored sources
-├── pkgs/
-│   ├── myapp.nix       # Main application
-│   ├── dependency1.nix # FOD package
-│   └── override.nix    # Platform-specific override
-```
-
-Manifest with multiple builds:
-```toml
-[build]
-[build.dependency1]
-expression = "(import ./pkgs/dependency1.nix { inherit lib python3; })"
-
-[build.myapp]
-expression = """
-  (import ./pkgs/myapp.nix {
-    inherit lib python3 fetchFromGitHub makeWrapper;
-    customDep = dependency1;  # Reference other build
-  })
-"""
-```
+3. **Use Nix tools**:
+   ```bash
+   nix-build -K          # Keep failed build
+   nix repl             # Test expressions
+   nix-store --query    # Check dependencies
+   ```
 
 ---
 
 ## 🚀 Success Formula
 
-1. **ALWAYS use Nix expressions** - Create `.nix` files, NOT shell commands
-2. **Reference with `expression`** - Use `expression = "(import ./pkg.nix {...})"` in manifest
-3. **Use Nix patterns** - `buildPythonApplication`, `propagatedBuildInputs`, `makeWrapper`
-4. **Handle dependencies properly** - FOD packages, overrides, or nixpkgs
-5. **Test with `flox build`** - Build incrementally, test each component
-6. **Document issues** - Platform problems, workarounds
-
-**The Golden Rule**: If you're writing bash commands in a manifest build, you're doing it wrong. Write a Nix expression instead.
+1. **Create `.nix` files in `.flox/pkgs/`**
+2. **Use `buildPythonApplication`** with proper Nix patterns
+3. **Manage dependencies** with `propagatedBuildInputs`
+4. **Git add your files**
+5. **Run `flox build <name>`**
 
 ---
 
 ## 💡 Remember
 
-> **The path to Nix enlightenment is paved with idiomatic patterns, not clever workarounds.**
+> **The path to Nix enlightenment: Use the right tool for the job.**
 
-When in doubt:
-- Check how nixpkgs does it
-- Use the simplest approach that works
-- Let Nix handle complexity
+- Complex apps need Nix expressions
+- Manifest builds are not for applications
 - Don't mix paradigms (pip + nix = pain)
+- When in doubt, check how nixpkgs does it
 
 ---
+
+*Generated from the spectacular failures and eventual success of packaging ComfyUI with Nix/Flox*
