@@ -1,4 +1,8 @@
-# ComfyUI Flox Build Package
+# ComfyUI Flox Build Package (Stable Branch - v0.9.1)
+
+> **Recommended**: This is the `main` branch providing the current stable version (v0.9.1).
+> For bleeding-edge features, switch to the `latest` branch.
+> For historical versions, use version-specific branches like `v0.6.0`.
 
 A rock-solid, publishable ComfyUI package for Flox with comprehensive dependency management and workflow support.
 
@@ -99,7 +103,7 @@ This package tracks [ComfyUI upstream releases](https://github.com/comfyanonymou
 
 | Component | Version | Source |
 |-----------|---------|--------|
-| ComfyUI (main) | 0.9.1 | [GitHub](https://github.com/comfyanonymous/ComfyUI) |
+| ComfyUI (main) | 0.9.1 ✅ **Stable** | [GitHub](https://github.com/comfyanonymous/ComfyUI) |
 | ComfyUI (latest) | 0.9.2 | [GitHub](https://github.com/comfyanonymous/ComfyUI) |
 | Frontend Package | 1.36.14 | [PyPI](https://pypi.org/project/comfyui-frontend-package/) |
 | Workflow Templates | 0.8.4 | [PyPI](https://pypi.org/project/comfyui-workflow-templates/) |
