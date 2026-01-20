@@ -33,10 +33,6 @@ flox install yourcatalog/comfyui-plugins
 # After installing plugins, activate them:
 comfyui-activate-plugins
 comfyui-download-impact-models  # Download required models
-
-# Optional: Impact Subpack (YOLO detection with onnxruntime)
-flox install yourcatalog/comfyui-impact-subpack
-comfyui-activate-impact-subpack
 ```
 
 ---
