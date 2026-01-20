@@ -1,7 +1,8 @@
 # ComfyUI Flox Build Package (Historical Branch - v0.6.0)
 
-> **Note**: This is the historical branch maintaining ComfyUI v0.6.0 for compatibility.
-> For the latest version, switch to the `nightly` branch.
+> **Note**: This is the v0.6.0 branch maintaining ComfyUI v0.6.0 for compatibility.
+> For the current stable version, switch to the `main` branch.
+> For the newest version, switch to the `latest` branch.
 
 A rock-solid, publishable ComfyUI package for Flox with comprehensive dependency management and workflow support.
 
@@ -10,14 +11,14 @@ A rock-solid, publishable ComfyUI package for Flox with comprehensive dependency
 ### Build the Package
 
 ```bash
-flox build comfyui-base
+flox build comfyui
 ```
 
 ### Publish to Your Catalog
 
 ```bash
 flox auth login
-flox publish -o yourcatalog comfyui-base
+flox publish -o yourcatalog comfyui
 ```
 
 ### Install from Your Catalog
@@ -44,58 +45,48 @@ comfyui-activate-impact-subpack
 
 This repository follows a three-branch rotation strategy for version management:
 
-- **`main`** - Current stable version (v0.6.0) using standard toolchains from nixpkgs
-- **`nightly`** - Latest upstream version (v0.9.1) with bleeding-edge features
-- **`historical`** - Previous stable version (v0.6.0) maintained for compatibility
+- **`main`** - Current stable version (v0.9.1) - the recommended version for most users
+- **`latest`** - Newest upstream version (v0.9.2) - for testing new features
+- **`v0.6.0`** - This branch - historical version maintained for compatibility
 
-### Branch Rotation
+### Version Rotation Strategy
 
-When new ComfyUI versions are released, branches rotate to maintain three active versions:
-
-```
-When 0.9.2 releases:
-historical (0.6.0) → becomes branch v0.6.0 (preserved forever)
-main (0.6.0)       → becomes historical
-nightly (0.9.1)    → becomes main
-nightly            → updates to 0.9.2
-```
+When a new ComfyUI version is released:
+1. Current `latest` becomes the new `main`
+2. Current `main` becomes a historical branch (e.g., `v0.9.1`)
+3. New version becomes `latest`
 
 This ensures:
 - Users on `main` get stable, tested versions
-- Bleeding-edge users track `nightly`
-- Conservative users can stay on `historical` for one cycle
-- Specific versions are preserved as branches (`v0.6.0`, `v0.9.1`, etc.)
+- Bleeding-edge users track `latest`
+- Historical versions are preserved as branches (`v0.6.0`, `v0.9.1`, etc.)
 
 ### Switching Branches
 
 ```bash
-# Latest bleeding-edge version
-git checkout nightly
-flox build comfyui
-
-# Current stable version
+# Current stable version (recommended)
 git checkout main
 flox build comfyui
 
-# Previous stable (compatibility)
-git checkout historical
+# Newest version (testing)
+git checkout latest
 flox build comfyui
 
-# Specific version (after rotation)
-git checkout v0.9.1
+# Historical versions
+git checkout v0.6.0
 flox build comfyui
 ```
 ## Repository Structure
 
 ```
 .flox/pkgs/
-├── comfyui-base.nix              # Main ComfyUI package
+├── comfyui.nix              # Main ComfyUI package
 ├── comfyui-frontend-package.nix  # Web UI (PyPI package)
 ├── comfyui-workflow-templates.nix # Example workflows (PyPI package)
 ├── comfyui-embedded-docs.nix     # Documentation (PyPI package)
 ├── comfyui-plugins.nix           # Custom node plugins (Impact Pack, etc.)
-├── segment-anything.nix          # SAM model support for plugins
-└── spandrel.nix                  # Model loading library
+├── spandrel.nix                  # Model loading library
+└── color-matcher.nix             # Example package (not imported)
 
 assets/
 ├── download-sd15-enhanced.py     # SD 1.5 downloader
@@ -143,7 +134,7 @@ curl -s https://pypi.org/pypi/comfyui-embedded-docs/json | jq -r '.info.version'
 
 #### 2. Update ComfyUI Core
 
-Edit `.flox/pkgs/comfyui-base.nix`:
+Edit `.flox/pkgs/comfyui.nix`:
 
 ```nix
 # Change this line:
@@ -158,11 +149,11 @@ version = "0.6.1";  # or whatever the latest is
 Build will fail with the actual hash - copy it:
 
 ```bash
-flox build comfyui-base
+flox build comfyui
 # Error: hash mismatch, expected: sha256-XXXXXXXX
 # Got:    sha256-YYYYYYYY
 
-# Update the hash in comfyui-base.nix:
+# Update the hash in comfyui.nix:
 hash = "sha256-YYYYYYYY";
 ```
 
@@ -170,7 +161,7 @@ hash = "sha256-YYYYYYYY";
 
 ```bash
 nix-prefetch-url --unpack https://github.com/comfyanonymous/ComfyUI/archive/v0.3.76.tar.gz
-# Copy the resulting hash to comfyui-base.nix
+# Copy the resulting hash to comfyui.nix
 ```
 
 #### 4. Update Dependency Packages
@@ -193,13 +184,13 @@ Update each `.flox/pkgs/*.nix` file if versions changed (same hash update proces
 #### 5. Build and Test
 
 ```bash
-flox build comfyui-base
+flox build comfyui
 
 # Test the binary
-./result-comfyui-base/bin/comfyui --help
+./result-comfyui/bin/comfyui --help
 
 # Test download tools
-./result-comfyui-base/bin/comfyui-download
+./result-comfyui/bin/comfyui-download
 ```
 
 #### 6. Update Version Table
@@ -214,7 +205,7 @@ git commit -m "Update ComfyUI to v0.6.1"
 git tag v0.6.1
 git push && git push --tags
 
-flox publish -o yourcatalog comfyui-base
+flox publish -o yourcatalog comfyui
 ```
 
 ### Building Older Versions
@@ -224,10 +215,10 @@ To build a specific older version:
 1. **Checkout the tagged version:**
    ```bash
    git checkout v0.6.0
-   flox build comfyui-base
+   flox build comfyui
    ```
 
-2. **Or manually edit the version** in `.flox/pkgs/comfyui-base.nix` and update hashes.
+2. **Or manually edit the version** in `.flox/pkgs/comfyui.nix` and update hashes.
 
 3. **Create version-specific branches** (optional):
    ```bash
