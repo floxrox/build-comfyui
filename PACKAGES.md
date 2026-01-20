@@ -1,115 +1,184 @@
-# ComfyUI Packages
+# ComfyUI Flox Packages Documentation
 
-## Core Packages
+**Branch:** v0.6.0
+**ComfyUI Version:** 0.6.0
+
+## Package Overview
+
+This repository contains 16 Nix packages for building and running ComfyUI with Flox.
+
+## Core Package
 
 ### comfyui.nix
-Main ComfyUI application with Python dependencies.
-- **Added dependencies**: gitpython, pygithub, rich, typer, toml, chardet (for Manager)
-- **Added tools**: uv package manager in PATH via makeWrapper for runtime installations
-- **OpenCV**: Standardized to opencv4
-- **Path wrapping**: `--prefix PATH : "${uv}/bin"` enables Manager package installs
+- **Purpose**: Main ComfyUI application
+- **Version**: 0.6.0 (matches ComfyUI version)
+- **Imports**: 13 packages (all active packages except color-matcher)
+- **Build command**: `flox build comfyui`
+- **Binary**: Provides `comfyui` and model download tools
 
-### comfyui-manager.nix
-Runtime package manager for custom nodes.
-- **Activation**: `comfyui-activate-manager` symlinks to userland
-- **Features**: Web UI for node installation, doesn't write to nix store
-- **Dependencies**: Requires uv/pip for runtime package operations
-- **Critical Fix**: Sed patch adds `--system` flag AFTER uv subcommand (install/uninstall only)
-- **Pattern**: `uv pip install --system` (correct) vs `uv pip --system install` (wrong)
+## Frontend & UI Packages
 
-### comfyui-ultralytics.nix
-YOLO detection support for UltralyticsDetectorProvider node.
-- **Type**: Python package (no activation script needed)
-- **Note**: Base ultralytics package, Impact-Subpack provides the nodes
-- **OpenCV**: Uses opencv4
+### comfyui-frontend-package.nix
+- **Purpose**: Web UI components for ComfyUI
+- **Version**: 1.34.9 (from PyPI)
+- **Type**: Python wheel package
+- **Imported by**: comfyui.nix
 
-### comfyui-impact-subpack.nix
-Impact Subpack with YOLO detection nodes and onnxruntime.
-- **Activation**: `comfyui-activate-impact-subpack` symlinks to custom_nodes/
-- **Dependencies**: matplotlib, numpy, opencv4, dill, ultralytics with onnxruntime
-- **Build Fix**: Overrides ultralytics to disable network tests (`doCheck = false`)
-- **Provides**: UltralyticsDetectorProvider and additional Impact nodes
+### comfyui-embedded-docs.nix
+- **Purpose**: Built-in documentation and help system
+- **Version**: 0.3.1 (from PyPI)
+- **Type**: Python wheel package
+- **Imported by**: comfyui.nix
 
-## Supporting Packages
+## Workflow Templates
+
+### comfyui-workflow-templates.nix
+- **Purpose**: Collection of example workflows
+- **Version**: 0.7.63 (from PyPI)
+- **Type**: Python wheel package (meta-package)
+- **Imported by**: comfyui.nix
+- **Depends on**: All 5 workflow sub-packages below
+
+### Workflow Sub-packages
+
+#### comfyui-workflow-templates-core.nix
+- **Version**: 0.7.63
+- **Purpose**: Core workflow templates
+- **Imported by**: comfyui.nix, comfyui-workflow-templates.nix
+
+#### comfyui-workflow-templates-media-api.nix
+- **Version**: 0.7.63
+- **Purpose**: API-based media workflows
+- **Imported by**: comfyui.nix, comfyui-workflow-templates.nix
+
+#### comfyui-workflow-templates-media-video.nix
+- **Version**: 0.7.63
+- **Purpose**: Video processing workflows
+- **Imported by**: comfyui.nix, comfyui-workflow-templates.nix
+
+#### comfyui-workflow-templates-media-image.nix
+- **Version**: 0.7.63
+- **Purpose**: Image processing workflows
+- **Imported by**: comfyui.nix, comfyui-workflow-templates.nix
+
+#### comfyui-workflow-templates-media-other.nix
+- **Version**: 0.7.63
+- **Purpose**: Other media workflows
+- **Imported by**: comfyui.nix, comfyui-workflow-templates.nix
+
+## Plugin System
 
 ### comfyui-plugins.nix
-Impact Pack and other custom nodes.
-- **Impact-Pack**: Face enhancement, detection nodes
-- **Impact-Subpack**: Contains UltralyticsDetectorProvider
+- **Purpose**: Custom node plugins (currently Impact Pack)
+- **Version**: 0.6.0 (matches ComfyUI version for compatibility)
+- **Impact Pack Version**: 8.28
+- **Build command**: `flox build comfyui-plugins`
+- **Provides**: `comfyui-activate-plugins`, `comfyui-download-impact-models`
+- **Note**: Standalone package, not imported by comfyui.nix
 
-### Other Dependencies
-- spandrel.nix - Model loading library
-- nunchaku.nix - FLUX optimization
-- controlnet-aux.nix - Advanced preprocessors
-- gguf.nix - Quantized model support
-- accelerate.nix - Model loading optimization
+## ML/AI Dependencies
 
-## Package Patterns
+### spandrel.nix
+- **Purpose**: Model loading and architecture detection library
+- **Version**: 0.4.0 (from PyPI)
+- **Imported by**: comfyui.nix
 
-### Activation Scripts
-Custom node packages provide their own activation scripts:
-1. Package installs to nix store with activation script in `$out/bin/`
-2. Activation script creates symlink from store → userland
-3. ComfyUI loads from userland directory
+### nunchaku.nix
+- **Purpose**: FLUX model optimization library
+- **Version**: 0.16.1 (from PyPI)
+- **Imported by**: comfyui.nix
 
-Examples:
+### controlnet-aux.nix
+- **Purpose**: ControlNet preprocessors and utilities
+- **Version**: 0.0.10 (from PyPI)
+- **Imported by**: comfyui.nix
+
+### gguf.nix
+- **Purpose**: GGUF model format support
+- **Version**: 0.11.0 (from PyPI)
+- **Imported by**: comfyui.nix
+
+### accelerate.nix
+- **Purpose**: PyTorch acceleration utilities
+- **Version**: 1.2.1 (from PyPI)
+- **Imported by**: comfyui.nix
+
+## Example/Reference Package
+
+### color-matcher.nix
+- **Purpose**: Example package demonstrating custom Python package building
+- **Version**: 0.6.0
+- **Status**: Working but not imported (reference implementation)
+- **Note**: From initial repository architecture design
+
+## Future Development
+
+The following packages exist in the `nightly-broken-v091` branch and may be integrated in future releases:
+
+### comfyui-manager.nix (TC)
+- **Purpose**: Web UI for managing ComfyUI custom nodes
+- **Version**: Will match ComfyUI version when integrated
+- **Branch**: nightly-broken-v091
+
+### comfyui-ultralytics.nix (TC)
+- **Purpose**: YOLO model support and utilities
+- **Version**: Will match ComfyUI version when integrated
+- **Related**: Extends Impact Pack functionality
+- **Branch**: nightly-broken-v091
+
+### comfyui-impact-subpack.nix (TC)
+- **Purpose**: Extended Impact Pack features with onnxruntime
+- **Version**: Will match ComfyUI version when integrated
+- **Branch**: nightly-broken-v091
+
+## Versioning Strategy
+
+### Lock-step Versioning (Our Packages)
+Packages we maintain match ComfyUI's version to indicate compatibility:
+- comfyui.nix → 0.6.0
+- comfyui-plugins.nix → 0.6.0
+- Future: comfyui-manager.nix, comfyui-ultralytics.nix, etc.
+
+### Independent Versioning (Vendored Packages)
+External packages maintain their upstream versions:
+- PyPI packages: Use exact versions from PyPI
+- GitHub packages: Use specific release tags
+
+When ComfyUI updates, lock-step packages update together while vendored packages only update when their upstream changes.
+
+## Building Packages
+
 ```bash
-comfyui-activate-manager        # Links Manager to custom_nodes/
-comfyui-activate-plugins        # Links Impact Pack to custom_nodes/
-comfyui-activate-impact-subpack # Links Impact Subpack to custom_nodes/
+# Build main ComfyUI
+flox build comfyui
+
+# Build plugins separately
+flox build comfyui-plugins
+
+# Cannot build sub-packages directly (they're imported)
+# The following will fail:
+# flox build comfyui-frontend-package
 ```
 
-### Environment Integration
-Environments should detect and prompt for activation, not reimplement:
-```bash
-# In manifest.toml [hook] section
-if command -v comfyui-activate-impact-subpack >/dev/null 2>&1; then
-  if [ ! -L "$WORK_DIR/custom_nodes/ComfyUI-Impact-Subpack" ]; then
-    echo "Run: comfyui-activate-impact-subpack"
-  fi
-fi
+## Package Dependencies Graph
+
 ```
+comfyui.nix
+├── comfyui-frontend-package.nix
+├── comfyui-embedded-docs.nix
+├── comfyui-workflow-templates.nix
+│   ├── comfyui-workflow-templates-core.nix
+│   ├── comfyui-workflow-templates-media-api.nix
+│   ├── comfyui-workflow-templates-media-video.nix
+│   ├── comfyui-workflow-templates-media-image.nix
+│   └── comfyui-workflow-templates-media-other.nix
+├── spandrel.nix
+├── nunchaku.nix
+├── controlnet-aux.nix
+├── gguf.nix
+└── accelerate.nix
 
-### Build Overrides for Network Tests
-When packages fail due to network tests in sandbox:
-```nix
-package-no-tests = pythonPackages.package.overridePythonAttrs (oldAttrs: {
-  doCheck = false;
-  pytestCheckPhase = "true";
-});
+Standalone:
+├── comfyui-plugins.nix
+└── color-matcher.nix (example only)
 ```
-
-## Branch Availability
-
-- **main** (0.6.0): Core ComfyUI only
-- **nightly** (0.9.1): All packages including Manager, Ultralytics, and Impact-Subpack
-- **historical** (0.6.0): Core ComfyUI only
-
-## Branch Migration
-
-When nightly becomes main:
-1. Copy comfyui-manager.nix, comfyui-ultralytics.nix, and comfyui-impact-subpack.nix to main branch
-2. Update versions in these packages to match main's ComfyUI version
-3. Verify uv is in PATH in comfyui.nix
-4. Test all activation scripts still work with older ComfyUI
-
-## Build & Integration
-
-### How they're built
-- Manager: stdenv.mkDerivation (pure file copy with activation script and sed patch)
-- Ultralytics: buildPythonPackage (wraps ultralytics Python package)
-- Impact-Subpack: stdenv.mkDerivation with Python dependencies and activation script
-- All are separate Flox packages (`flox build <package-name>`)
-- They don't depend on comfyui.nix but require it at runtime
-
-### Integration with comfyui
-- comfyui.nix has Manager's Python dependencies (rich, gitpython, etc.)
-- comfyui.nix adds uv to PATH for Manager's runtime installs
-- Activation scripts symlink from nix store to ComfyUI's custom_nodes/
-
-### Maintenance
-- Update Manager: Change rev/hash in comfyui-manager.nix
-- Update Ultralytics: Change version/hash in comfyui-ultralytics.nix
-- Update Impact-Subpack: Change rev/hash in comfyui-impact-subpack.nix
-- If network tests fail: Add override pattern to disable tests
-- Keep versions aligned with ComfyUI version on each branch
