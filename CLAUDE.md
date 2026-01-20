@@ -20,7 +20,7 @@ This is a Flox-based build system for ComfyUI using Nix expressions. The reposit
 
 **Key Context from ABOUT_THIS_REPO.md:**
 - Default workspace: `$HOME/comfyui-work`
-- Related repo: `~/dev/testes/build-comfyui-extras/` (for custom nodes and extras)
+- Related repo: https://github.com/barstoolbluz/build-comfyui-extras.git (for custom nodes and extras - clone this when needed)
 - Runtime: ComfyUI launches from a Flox environment with service management
 
 ## Key Principles
@@ -120,7 +120,8 @@ propagatedBuildInputs = [
 2. Add to `propagatedBuildInputs` in `comfyui.nix`
 3. Check if custom build needed (see `spandrel.nix` for example)
 4. Consider vendoring if network-dependent (see NIX_PYTHON_BUILD_GUIDE.md)
-5. Test on both Linux and Darwin
+5. Clone https://github.com/barstoolbluz/build-comfyui-extras.git to check for related dependencies
+6. Test on both Linux and Darwin
 
 ### Updating ComfyUI Version
 1. Check latest release: `curl -s https://api.github.com/repos/Comfy-Org/ComfyUI/releases/latest | jq -r '.tag_name'`
@@ -175,6 +176,7 @@ Update ComfyUI to v0.9.3
 ## Repository URLs
 
 - Main repo: https://github.com/floxrox/build-comfyui
+- Extras repo: https://github.com/barstoolbluz/build-comfyui-extras.git (clone when working with custom nodes)
 - Upstream ComfyUI: https://github.com/Comfy-Org/ComfyUI
 - Old upstream: https://github.com/comfyanonymous/ComfyUI
 
@@ -226,7 +228,7 @@ Update ComfyUI to v0.9.3
 4. **Document changes** - Update README.md when versions change
 5. **Check dependencies** - Verify requirements.txt changes in upstream
 6. **Test cross-platform** - Ensure builds work on Linux and Darwin when possible
-7. **Check related repos** - Consider impacts on `build-comfyui-extras` repository
+7. **Check related repos** - Clone and examine https://github.com/barstoolbluz/build-comfyui-extras.git for custom nodes/extras integration
 
 ## Helper Scripts
 
