@@ -47,9 +47,14 @@ When ComfyUI releases a new version:
 
 ## Build Commands
 
+### CRITICAL: Build Approach
+This repository uses **Nix Expression Builds ONLY** (`.flox/pkgs/*.nix` files).
+We do NOT use manifest builds (`[build]` sections) - they failed catastrophically for ComfyUI.
+See NIX_PYTHON_BUILD_GUIDE.md for why this distinction matters.
+
 ### Essential Commands
 ```bash
-# Build ComfyUI package
+# Build ComfyUI package (uses .flox/pkgs/comfyui.nix)
 flox build comfyui
 
 # Test the build
@@ -72,6 +77,7 @@ flox activate -- comfyui
 - `.flox/pkgs/comfyui.nix` - Main ComfyUI package
 - `.flox/pkgs/comfyui-plugins.nix` - Impact Pack and other plugins
 - `.flox/pkgs/*.nix` - Supporting packages
+- `.flox/env/manifest.toml` - Runtime environment only (NOT for builds)
 
 ### Documentation Structure
 
@@ -189,11 +195,12 @@ Update ComfyUI to v0.9.3
 - Getting the big picture of the project architecture
 
 ### Use NIX_PYTHON_BUILD_GUIDE.md for:
-- Python packaging patterns and best practices
-- Vendoring dependencies for reproducibility
-- Fixed-output derivation patterns
-- Handling problematic Python packages
-- Understanding the three-tier Python packaging approach
+- **CRITICAL**: Understanding the two separate build systems (Nix expressions vs Manifest builds)
+- Why manifest builds failed catastrophically for ComfyUI
+- Python packaging patterns using buildPythonApplication
+- Anti-patterns to avoid (no venv/pip in builds, no git clone, no runtime vars)
+- Fixed-output derivation patterns for missing packages
+- The correct approach: Nix expressions in `.flox/pkgs/`
 
 ### Use FLOX.md for:
 - Understanding Flox fundamentals and philosophy
@@ -222,13 +229,15 @@ Update ComfyUI to v0.9.3
 
 ## Important Notes
 
-1. **Consult documentation** - Read ABOUT_THIS_REPO.md for strategy, NIX_PYTHON_BUILD_GUIDE.md for technical patterns
-2. **Never skip testing** - Always run `flox build` before pushing
-3. **Preserve reproducibility** - Use vendoring and fixed-output derivations (see NIX_PYTHON_BUILD_GUIDE.md)
-4. **Document changes** - Update README.md when versions change
-5. **Check dependencies** - Verify requirements.txt changes in upstream
-6. **Test cross-platform** - Ensure builds work on Linux and Darwin when possible
-7. **Check related repos** - Clone and examine https://github.com/barstoolbluz/build-comfyui-extras.git for custom nodes/extras integration
+1. **Understand the build system** - Nix expressions in `.flox/pkgs/` ONLY, never manifest builds
+2. **Consult documentation** - Read ABOUT_THIS_REPO.md for strategy, NIX_PYTHON_BUILD_GUIDE.md for build approach
+3. **Never skip testing** - Always run `flox build` before pushing
+4. **Preserve reproducibility** - Use vendoring and fixed-output derivations (see NIX_PYTHON_BUILD_GUIDE.md)
+5. **Document changes** - Update README.md when versions change
+6. **Check dependencies** - Verify requirements.txt changes in upstream
+7. **Test cross-platform** - Ensure builds work on Linux and Darwin when possible
+8. **Check related repos** - Clone and examine https://github.com/barstoolbluz/build-comfyui-extras.git for custom nodes/extras integration
+9. **Separation of concerns** - Build time (Nix expressions) ≠ Runtime (manifest.toml)
 
 ## Helper Scripts
 
