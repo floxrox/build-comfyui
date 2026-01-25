@@ -25,13 +25,13 @@
 
 stdenv.mkDerivation rec {
   pname = "comfyui";
-  version = "0.10.0";
+  version = "0.9.1";
 
   src = fetchFromGitHub {
     owner = "comfyanonymous";
     repo = "ComfyUI";
     rev = "v${version}";
-    hash = "sha256-WVWKMXXOls9lYiNWFj164DP96V8IhRfTfxBI9CRprkE=";
+    hash = "sha256-tAbXhLoN3tuML3R1AdJ18stleFv4w0nZcUoySP6W9+0=";
   };
 
   dontBuild = true;
