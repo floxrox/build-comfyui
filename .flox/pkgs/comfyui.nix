@@ -15,7 +15,7 @@
 #   - comfyui-extras (torch-agnostic ML dependencies)
 #   - comfyui-plugins (custom node packages)
 #
-# Mutable directories (user/, input/, output/, custom_nodes/)
+# Mutable directories (user/, input/, output/, custom_nodes/, models/)
 # are managed separately by the runtime environment.
 
 { lib
@@ -33,6 +33,26 @@ stdenv.mkDerivation rec {
     rev = "v${version}";
     hash = "sha256-/QuoChUV6dsTeOcxCRfZ4e20H55LlY7bxd4PkpOElAM=";
   };
+
+  # Patch: Handle broken symlinks gracefully in custom_nodes loading
+  # Without this fix, broken symlinks cause UnboundLocalError for sys_module_name
+  # because the code only sets it for isfile() or isdir(), not for broken symlinks.
+  # TODO: Remove when fixed upstream
+  postPatch = ''
+    substituteInPlace nodes.py \
+      --replace-fail \
+'    elif os.path.isdir(module_path):
+        sys_module_name = module_path.replace(".", "_x_")
+
+    try:' \
+'    elif os.path.isdir(module_path):
+        sys_module_name = module_path.replace(".", "_x_")
+    else:
+        logging.warning(f"Skipping invalid module path (broken symlink?): {module_path}")
+        return False
+
+    try:'
+  '';
 
   dontBuild = true;
   dontConfigure = true;
@@ -60,11 +80,11 @@ stdenv.mkDerivation rec {
     rm -rf $out/share/comfyui/models
 
     # Create placeholder directories (helps with runtime setup)
+    # Note: models/ is NOT created here - runtime symlinks to user's models dir
     mkdir -p $out/share/comfyui/custom_nodes
     mkdir -p $out/share/comfyui/input
     mkdir -p $out/share/comfyui/output
     mkdir -p $out/share/comfyui/user
-    mkdir -p $out/share/comfyui/models
 
     runHook postInstall
   '';
