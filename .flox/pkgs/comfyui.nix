@@ -15,8 +15,13 @@
 #   - comfyui-extras (torch-agnostic ML dependencies)
 #   - comfyui-plugins (custom node packages)
 #
-# Mutable directories (user/, input/, output/, custom_nodes/, models/)
-# are managed separately by the runtime environment.
+# MUTABLE DIRECTORIES:
+# --------------------
+# The following directories are REMOVED from the package:
+#   - models/, custom_nodes/, input/, output/, user/
+#
+# These are user-writable directories that the runtime environment
+# is responsible for creating and managing via $COMFYUI_WORK_DIR.
 
 { lib
 , stdenv
@@ -71,20 +76,13 @@ stdenv.mkDerivation rec {
     rm -rf $out/share/comfyui/.github
     rm -rf $out/share/comfyui/.ci
 
-    # Remove directories that should be managed by runtime
-    # (these will be symlinked or overlaid at runtime)
+    # Remove mutable directories - these are managed by the runtime environment
+    # The runtime creates these in $COMFYUI_WORK_DIR and sets up appropriate paths
     rm -rf $out/share/comfyui/custom_nodes
     rm -rf $out/share/comfyui/input
     rm -rf $out/share/comfyui/output
     rm -rf $out/share/comfyui/user
     rm -rf $out/share/comfyui/models
-
-    # Create placeholder directories (helps with runtime setup)
-    # Note: models/ is NOT created here - runtime symlinks to user's models dir
-    mkdir -p $out/share/comfyui/custom_nodes
-    mkdir -p $out/share/comfyui/input
-    mkdir -p $out/share/comfyui/output
-    mkdir -p $out/share/comfyui/user
 
     runHook postInstall
   '';
@@ -101,7 +99,8 @@ stdenv.mkDerivation rec {
       - comfyui-plugins (custom node packages)
 
       Mutable directories (models/, custom_nodes/, user/, input/, output/)
-      are managed separately by the runtime environment.
+      are removed from this package and managed by the runtime environment
+      via $COMFYUI_WORK_DIR.
 
       Version: ${version}
     '';
