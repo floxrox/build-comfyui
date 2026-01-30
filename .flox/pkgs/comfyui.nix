@@ -30,12 +30,12 @@
 
 stdenv.mkDerivation rec {
   pname = "comfyui";
-  version = "0.10.0";
+  version = "0.10.0-fix";
 
   src = fetchFromGitHub {
     owner = "comfyanonymous";
     repo = "ComfyUI";
-    rev = "v${version}";
+    rev = "v0.10.0";
     hash = "sha256-WVWKMXXOls9lYiNWFj164DP96V8IhRfTfxBI9CRprkE=";
   };
 
