@@ -39,6 +39,8 @@ stdenv.mkDerivation rec {
     hash = "sha256-WVWKMXXOls9lYiNWFj164DP96V8IhRfTfxBI9CRprkE=";
   };
 
+  downloadScripts = ../../scripts;
+
   dontBuild = true;
   dontConfigure = true;
 
@@ -63,6 +65,14 @@ stdenv.mkDerivation rec {
     rm -rf $out/share/comfyui/output
     rm -rf $out/share/comfyui/user
     rm -rf $out/share/comfyui/models
+
+    # Install model download scripts from scripts/ directory
+    mkdir -p $out/bin
+    for script in ${downloadScripts}/*.py; do
+      name="$(basename "$script" .py)"
+      cp "$script" "$out/bin/$name"
+      chmod +x "$out/bin/$name"
+    done
 
     runHook postInstall
   '';
