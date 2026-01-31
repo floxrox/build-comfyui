@@ -22,6 +22,7 @@ The package:
 - Removes directories that should be mutable (models/, custom_nodes/, user/, input/, output/)
 - Applies patches for compatibility (see [Patches](#patches) below)
 - Installs to `$out/share/comfyui/`
+- Installs model download scripts to `$out/bin/` (see [Model Download Scripts](#model-download-scripts) below)
 
 At runtime, the Flox environment symlinks mutable directories to user-writable locations.
 
@@ -34,6 +35,11 @@ build-comfyui/
 │   │   └── manifest.toml      # Flox build environment
 │   └── pkgs/
 │       └── comfyui.nix        # Main package definition
+├── scripts/
+│   ├── comfyui-download-sd15.py   # SD 1.5 downloader
+│   ├── comfyui-download-sdxl.py   # SDXL 1.0 downloader
+│   ├── comfyui-download-sd35.py   # SD 3.5 Large downloader
+│   └── comfyui-download-flux.py   # FLUX.1-dev downloader
 ├── README.md                  # This file
 └── result-comfyui             # Build output symlink (gitignored)
 ```
@@ -51,6 +57,34 @@ flox build comfyui
 # Output appears at ./result-comfyui
 ls result-comfyui/share/comfyui/
 ```
+
+## Model Download Scripts
+
+The `scripts/` directory contains Python scripts for downloading popular models from HuggingFace. These are installed to `$out/bin/` and available as CLI commands in the runtime environment.
+
+| Command | Model | Size | HF Token |
+|---------|-------|------|----------|
+| `comfyui-download-sd15` | Stable Diffusion 1.5 | ~4.3 GB | Not required |
+| `comfyui-download-sdxl` | Stable Diffusion XL 1.0 | ~6.9 GB | Not required |
+| `comfyui-download-sd35` | Stable Diffusion 3.5 Large | ~23 GB | **Required** (gated) |
+| `comfyui-download-flux` | FLUX.1-dev | ~22 GB | **Required** (gated) |
+
+Each script supports `--help`, `--dry-run`, and `--models-dir` flags. Model files are placed in the correct subdirectories (checkpoints/, clip/, unet/, vae/) automatically.
+
+For gated models, set `HF_TOKEN` before running:
+
+```bash
+export HF_TOKEN=hf_your_token_here
+comfyui-download-sd35
+```
+
+Environment variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `HF_TOKEN` | HuggingFace access token (required for gated models) |
+| `COMFYUI_MODELS_DIR` | Override model download directory directly |
+| `COMFYUI_WORK_DIR` | Override work directory (models go in `$COMFYUI_WORK_DIR/models`) |
 
 ## Patches
 
