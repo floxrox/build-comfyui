@@ -39,6 +39,26 @@ stdenv.mkDerivation rec {
     hash = "sha256-WVWKMXXOls9lYiNWFj164DP96V8IhRfTfxBI9CRprkE=";
   };
 
+  # Patch: Handle broken symlinks gracefully in custom_nodes loading
+  # Without this fix, broken symlinks cause UnboundLocalError for sys_module_name
+  # because the code only sets it for isfile() or isdir(), not for broken symlinks.
+  # TODO: Remove when fixed upstream
+  postPatch = ''
+    substituteInPlace nodes.py \
+      --replace-fail \
+'    elif os.path.isdir(module_path):
+        sys_module_name = module_path.replace(".", "_x_")
+
+    try:' \
+'    elif os.path.isdir(module_path):
+        sys_module_name = module_path.replace(".", "_x_")
+    else:
+        logging.warning(f"Skipping invalid module path (broken symlink?): {module_path}")
+        return False
+
+    try:'
+  '';
+
   downloadScripts = ../../scripts;
 
   dontBuild = true;
