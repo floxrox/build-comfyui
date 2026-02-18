@@ -30,13 +30,13 @@
 
 stdenv.mkDerivation rec {
   pname = "comfyui";
-  version = "0.11.0";
+  version = "0.14.2";
 
   src = fetchFromGitHub {
     owner = "comfyanonymous";
     repo = "ComfyUI";
-    rev = "v0.11.0";
-    hash = "sha256-CcA3xTVmBVLGMtM5F74R2LfwafFDxFHZ1uzx5MvrB/4=";
+    rev = "v0.14.2";
+    hash = "sha256-rrkVEnoWp0BBFZS4fMHo72aYZSxy0I3O8C9DMKXsr88=";
   };
 
   # Patch: Handle broken symlinks gracefully in custom_nodes loading
