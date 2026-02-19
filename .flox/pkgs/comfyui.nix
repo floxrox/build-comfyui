@@ -86,12 +86,16 @@ stdenv.mkDerivation rec {
     rm -rf $out/share/comfyui/user
     rm -rf $out/share/comfyui/models
 
-    # Install model download scripts from scripts/ directory
+    # Install scripts from scripts/ directory
+    # Handles both .py scripts (extension stripped) and shell scripts (no extension)
     mkdir -p $out/bin
-    for script in ${downloadScripts}/*.py; do
-      name="$(basename "$script" .py)"
-      cp "$script" "$out/bin/$name"
-      chmod +x "$out/bin/$name"
+    for script in ${downloadScripts}/*; do
+      if [ -f "$script" ]; then
+        # Strip .py extension if present, otherwise use filename as-is
+        name="$(basename "$script" .py)"
+        cp "$script" "$out/bin/$name"
+        chmod +x "$out/bin/$name"
+      fi
     done
 
     runHook postInstall
