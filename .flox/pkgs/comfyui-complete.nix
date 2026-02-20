@@ -204,6 +204,32 @@ in stdenv.mkDerivation rec {
     mkdir -p $out/share/comfyui/workflows
     cp -r ${comfyui-workflows}/share/comfyui/workflows/* $out/share/comfyui/workflows/ || true
 
+    # Pre-copy JS extensions to web directory (prevents permission errors on startup)
+    # Custom nodes like rgthree-comfy and ComfyUI-Custom-Scripts try to copy their JS
+    # files to web/extensions at import time, which fails on read-only Nix store.
+    echo "Pre-copying JS extensions to web/extensions..."
+    mkdir -p $out/share/comfyui/web/extensions
+
+    # rgthree-comfy: copies js/ to web/extensions/rgthree/
+    if [ -d "$out/share/comfyui/custom_nodes/rgthree-comfy/js" ]; then
+      mkdir -p $out/share/comfyui/web/extensions/rgthree
+      cp -r $out/share/comfyui/custom_nodes/rgthree-comfy/js/* $out/share/comfyui/web/extensions/rgthree/
+      echo "  - Installed rgthree-comfy JS extensions"
+    fi
+
+    # ComfyUI-Custom-Scripts: copies web/ to web/extensions/pysssss/ComfyUI-Custom-Scripts/
+    if [ -d "$out/share/comfyui/custom_nodes/ComfyUI-Custom-Scripts/web" ]; then
+      mkdir -p "$out/share/comfyui/web/extensions/pysssss/ComfyUI-Custom-Scripts"
+      cp -r $out/share/comfyui/custom_nodes/ComfyUI-Custom-Scripts/web/* "$out/share/comfyui/web/extensions/pysssss/ComfyUI-Custom-Scripts/"
+      echo "  - Installed ComfyUI-Custom-Scripts JS extensions"
+    fi
+
+    # Create logs directory for Comfyui-LayerForge (prevents permission error)
+    if [ -d "$out/share/comfyui/custom_nodes/Comfyui-LayerForge" ]; then
+      mkdir -p $out/share/comfyui/custom_nodes/Comfyui-LayerForge/logs
+      echo "  - Created LayerForge logs directory"
+    fi
+
     # Create the setup script (run at activation to install pip packages)
     cat > $out/bin/comfyui-setup << 'SETUP'
 #!/usr/bin/env bash

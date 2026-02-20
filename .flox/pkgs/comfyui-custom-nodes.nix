@@ -192,6 +192,22 @@ in stdenv.mkDerivation rec {
     substituteInPlace "$rgthree_dir/py/power_prompt.py" \
       --replace-fail "pattern='<lora:" "pattern=r'<lora:"
 
+    # Patch rgthree-comfy to skip JS file copying (pre-copied during build)
+    # The original code unconditionally copies JS files to web/extensions on startup,
+    # which fails on read-only Nix store. We skip this since files are pre-installed.
+    echo "Patching rgthree-comfy to skip runtime JS installation..."
+    substituteInPlace "$rgthree_dir/__init__.py" \
+      --replace-fail 'if not os.path.exists(DIR_WEB_JS):
+    os.makedirs(DIR_WEB_JS)
+
+shutil.copytree(DIR_DEV_JS, DIR_WEB_JS, dirs_exist_ok=True)' '# JS files pre-installed during Nix build - skip runtime copy
+try:
+    if not os.path.exists(DIR_WEB_JS):
+        os.makedirs(DIR_WEB_JS)
+    shutil.copytree(DIR_DEV_JS, DIR_WEB_JS, dirs_exist_ok=True)
+except PermissionError:
+    pass  # Read-only filesystem (Nix store)'
+
     # Patch ComfyUI_essentials for Python 3.12+ compatibility
     # Fixes invalid escape sequences in docstring regex examples
     echo "Patching ComfyUI_essentials for Python 3.12+ compatibility..."
@@ -211,6 +227,15 @@ in stdenv.mkDerivation rec {
 
     substituteInPlace "$customscripts_dir/pysssss.py" \
       --replace-fail 'dir = os.path.dirname(inspect.getfile(PromptServer))' 'dir = os.environ.get("COMFYUI_BASE_DIR", os.path.dirname(inspect.getfile(PromptServer)))'
+
+    # Patch get_web_ext_dir to handle read-only filesystem gracefully
+    substituteInPlace "$customscripts_dir/pysssss.py" \
+      --replace-fail 'if not os.path.exists(dir):
+        os.makedirs(dir)' 'if not os.path.exists(dir):
+        try:
+            os.makedirs(dir)
+        except PermissionError:
+            pass  # Read-only filesystem (Nix store)'
 
     # Pre-create config files to avoid runtime writes to read-only store
     # The code normally copies pysssss.default.json to pysssss.json on first run
