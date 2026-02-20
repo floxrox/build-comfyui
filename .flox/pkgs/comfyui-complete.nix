@@ -426,7 +426,8 @@ setup_comfyui() {
     $pip_cmd \
       comfyui-workflow-templates==0.8.15 \
       comfyui-embedded-docs==0.4.0 \
-      "safetensors>=0.4.2"
+      "safetensors>=0.4.2" \
+      "comfyui_manager>=4.0"
 
     # Install frontend package (version from ComfyUI's requirements.txt)
     frontend_req=$(get_comfyui_requirement "comfyui-frontend-package")
