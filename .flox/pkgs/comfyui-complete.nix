@@ -363,6 +363,31 @@ setup_comfyui() {
     done
   fi
 
+  # ============================================================
+  # WORKFLOWS SETUP
+  # ============================================================
+  # Copy bundled workflows to user's work directory (if not already there).
+  # ComfyUI expects workflows in user/default/workflows/
+
+  local workflows_store="$comfyui_source/workflows"
+  local user_workflows="$work_dir/user/default/workflows"
+
+  if [ -d "$workflows_store" ]; then
+    mkdir -p "$user_workflows"
+    for workflow_dir in "$workflows_store"/*; do
+      if [ -d "$workflow_dir" ]; then
+        local workflow_name=$(basename "$workflow_dir")
+        local target="$user_workflows/$workflow_name"
+
+        # Copy workflow to user work directory if it doesn't exist
+        if [ ! -d "$target" ]; then
+          echo "Installing workflow: $workflow_name" >&2
+          cp -r "$workflow_dir" "$target"
+        fi
+      fi
+    done
+  fi
+
   # Create and activate virtual environment with system packages
   if [ ! -d "$venv" ]; then
     echo "Creating Python virtual environment with system packages..."
@@ -661,6 +686,12 @@ fi
 START_SCRIPT
 
     chmod +x $out/bin/start
+
+    # Install model download scripts
+    # These scripts help users download models for various workflows (FLUX, SD1.5, SD3.5, SDXL)
+    echo "Installing model download scripts..."
+    cp ${../../scripts}/comfyui-download-*.py $out/bin/
+    chmod +x $out/bin/comfyui-download-*.py
 
     runHook postInstall
   '';
