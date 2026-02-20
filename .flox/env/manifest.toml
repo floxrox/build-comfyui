@@ -80,14 +80,8 @@ version = 1
 ##  $ flox publish
 ## ------------------------------------------------------------------
 [build]
-# [build.myproject]
-# description = "The coolest project ever"
-# version = "0.0.1"
-# command = """
-#   mkdir -p $out/bin
-#   cargo build --release
-#   cp target/release/myproject $out/bin/myproject
-# """
+[build.comfyui-complete]
+description = "Complete ComfyUI installation with all dependencies and custom nodes"
 
 
 ## Other Environment Options -----------------------------------------
