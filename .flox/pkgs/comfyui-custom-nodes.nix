@@ -71,14 +71,6 @@ let
       hash = "sha256-bw1hcRAhNV1dzSZv2IpblBIu4pR6H8KatF0tLLAmnW4=";
     };
 
-    # Ultimate upscale original script (downloaded by UltimateSDUpscale at runtime normally)
-    ultimate-upscale-original = fetchFromGitHub {
-      owner = "Coyote-A";
-      repo = "ultimate-upscale-for-automatic1111";
-      rev = "master";
-      hash = "sha256-hOw2rCPs4JiW3GtRrgRCmn9LKpByReGKbggEL68G+co=";
-    };
-
     ComfyUI-KJNodes = fetchFromGitHub {
       owner = "kijai";
       repo = "ComfyUI-KJNodes";
@@ -152,6 +144,15 @@ let
 
   nodeNames = builtins.attrNames nodeSources;
 
+  # Ultimate upscale original script (downloaded by UltimateSDUpscale at runtime normally)
+  # Separated from nodeSources because it's not a ComfyUI custom node itself
+  ultimateUpscaleOriginal = fetchFromGitHub {
+    owner = "Coyote-A";
+    repo = "ultimate-upscale-for-automatic1111";
+    rev = "master";
+    hash = "sha256-hOw2rCPs4JiW3GtRrgRCmn9LKpByReGKbggEL68G+co=";
+  };
+
 in stdenv.mkDerivation rec {
   pname = "comfyui-custom-nodes";
   version = "0.14.2";  # Tracks ComfyUI version
@@ -186,7 +187,7 @@ in stdenv.mkDerivation rec {
     echo "Pre-installing ultimate-upscale-original for UltimateSDUpscale..."
     usdu_dir="$out/share/comfyui/custom_nodes/ComfyUI_UltimateSDUpscale"
     if [ -d "$usdu_dir/repositories/ultimate_sd_upscale" ]; then
-      cp -r ${nodeSources.ultimate-upscale-original}/* "$usdu_dir/repositories/ultimate_sd_upscale/"
+      cp -r ${ultimateUpscaleOriginal}/* "$usdu_dir/repositories/ultimate_sd_upscale/"
       chmod -R u+w "$usdu_dir/repositories/ultimate_sd_upscale/"
     fi
 
