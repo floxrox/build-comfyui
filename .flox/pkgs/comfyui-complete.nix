@@ -622,8 +622,8 @@ LAUNCHER
 
 set -e
 
-PORT="${COMFYUI_PORT:-8188}"
-URL="http://localhost:${PORT}"
+PORT="''${COMFYUI_PORT:-8188}"
+URL="http://localhost:''${PORT}"
 
 # Start service if not already running
 if ! flox services status comfyui 2>/dev/null | grep -q "Running"; then
