@@ -71,6 +71,14 @@ let
       hash = "sha256-bw1hcRAhNV1dzSZv2IpblBIu4pR6H8KatF0tLLAmnW4=";
     };
 
+    # Ultimate upscale original script (downloaded by UltimateSDUpscale at runtime normally)
+    ultimate-upscale-original = fetchFromGitHub {
+      owner = "Coyote-A";
+      repo = "ultimate-upscale-for-automatic1111";
+      rev = "master";
+      hash = "sha256-hOw2rCPs4JiW3GtRrgRCmn9LKpByReGKbggEL68G+co=";
+    };
+
     ComfyUI-KJNodes = fetchFromGitHub {
       owner = "kijai";
       repo = "ComfyUI-KJNodes";
@@ -173,6 +181,15 @@ in stdenv.mkDerivation rec {
     mkdir -p $out/share/comfyui/custom_nodes/ComfyUI-SafeCLIP-SDXL
     cp ${../../sources/ComfyUI-SafeCLIP-SDXL/__init__.py} $out/share/comfyui/custom_nodes/ComfyUI-SafeCLIP-SDXL/__init__.py
 
+    # Pre-install ultimate-upscale-original for ComfyUI_UltimateSDUpscale
+    # This script is normally downloaded at runtime, but Nix store is read-only
+    echo "Pre-installing ultimate-upscale-original for UltimateSDUpscale..."
+    usdu_dir="$out/share/comfyui/custom_nodes/ComfyUI_UltimateSDUpscale"
+    if [ -d "$usdu_dir/repositories/ultimate_sd_upscale" ]; then
+      cp -r ${nodeSources.ultimate-upscale-original}/* "$usdu_dir/repositories/ultimate_sd_upscale/"
+      chmod -R u+w "$usdu_dir/repositories/ultimate_sd_upscale/"
+    fi
+
     # Patch ComfyUI_Comfyroll_CustomNodes for Python 3.12+ compatibility
     # Fixes invalid escape sequences (\W, \R) that cause SyntaxWarnings
     echo "Patching ComfyUI_Comfyroll_CustomNodes for Python 3.12+ compatibility..."
@@ -209,8 +226,8 @@ try:
     if not os.path.exists(DIR_WEB_JS):
         os.makedirs(DIR_WEB_JS)
     shutil.copytree(DIR_DEV_JS, DIR_WEB_JS, dirs_exist_ok=True)
-except PermissionError:
-    pass  # Read-only filesystem (Nix store)'
+except (PermissionError, shutil.Error, OSError):
+    pass  # Read-only filesystem (Nix store) - files already pre-installed'
 
     # Patch ComfyUI_essentials for Python 3.12+ compatibility
     # Fixes invalid escape sequences in docstring regex examples
