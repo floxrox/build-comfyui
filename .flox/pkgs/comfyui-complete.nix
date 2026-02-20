@@ -235,7 +235,7 @@ in stdenv.mkDerivation rec {
 
 set -e
 
-RUNTIME_VERSION="1.0.0"
+RUNTIME_VERSION="1.1.0"
 
 # Allow user to force reset: COMFYUI_RESET=1 flox activate
 if [ "''${COMFYUI_RESET:-0}" = "1" ]; then
@@ -273,6 +273,95 @@ setup_comfyui() {
   # Create work directory structure
   mkdir -p "$work_dir"/{models,output,input,user,custom_nodes}
   mkdir -p "''${FLOX_ENV_CACHE:-$work_dir/.cache}"/{temp,uv,pip,logs}
+
+  # ============================================================
+  # RUNTIME DIRECTORY SETUP
+  # ============================================================
+  # Create runtime directory that mirrors store with writable parts.
+  # This allows custom nodes to write configs, download models, etc.
+
+  local comfyui_runtime="''${COMFYUI_RUNTIME:-$FLOX_ENV_CACHE/comfyui-runtime}"
+  local version_file="$comfyui_runtime/.runtime_version"
+
+  if [ ! -d "$comfyui_runtime" ] || [ ! -f "$version_file" ] || \
+     [ "$(cat "$version_file" 2>/dev/null)" != "$RUNTIME_VERSION" ]; then
+    echo "Setting up ComfyUI runtime directory..." >&2
+    rm -rf "$comfyui_runtime"
+    mkdir -p "$comfyui_runtime"
+
+    # Symlink all files/dirs from store EXCEPT custom_nodes, models, and web
+    # (custom_nodes needs to be writable for user nodes, models for downloads, web for extensions)
+    for item in "$comfyui_source"/*; do
+      item_name=$(basename "$item")
+      if [ "$item_name" != "custom_nodes" ] && [ "$item_name" != "models" ] && [ "$item_name" != "web" ]; then
+        ln -sfn "$item" "$comfyui_runtime/$item_name"
+      fi
+    done
+
+    # Create writable custom_nodes directory
+    mkdir -p "$comfyui_runtime/custom_nodes"
+
+    # Symlink models to user's work directory (writable, for node downloads)
+    ln -sfn "$work_dir/models" "$comfyui_runtime/models"
+
+    # Copy web directory (some custom nodes need to write to web/extensions)
+    # Use cp -R (works on both Linux and macOS)
+    if [ -d "$comfyui_source/web" ]; then
+      echo "Copying web directory for writable extensions..." >&2
+      cp -RL "$comfyui_source/web" "$comfyui_runtime/"
+      chmod -R u+w "$comfyui_runtime/web" 2>/dev/null || true
+    fi
+
+    # Mark version for cache invalidation
+    echo "$RUNTIME_VERSION" > "$version_file"
+  fi
+
+  # ============================================================
+  # CUSTOM NODES SETUP
+  # ============================================================
+  # Copy bundled custom nodes to user's work directory (if not already there).
+  # This allows users to modify nodes while keeping upstream as reference.
+
+  local custom_nodes_store="$comfyui_source/custom_nodes"
+  local user_custom_nodes="$work_dir/custom_nodes"
+
+  if [ -d "$custom_nodes_store" ]; then
+    for node_dir in "$custom_nodes_store"/*; do
+      if [ -d "$node_dir" ]; then
+        local node_name=$(basename "$node_dir")
+        local target="$user_custom_nodes/$node_name"
+
+        # Copy node to user work directory if it doesn't exist
+        if [ ! -d "$target" ]; then
+          echo "Installing custom node: $node_name" >&2
+          cp -RL "$node_dir" "$target"
+          chmod -R u+w "$target" 2>/dev/null || true
+        fi
+      fi
+    done
+  fi
+
+  # Link all user custom_nodes to runtime (including copied Flox nodes)
+  if [ -d "$user_custom_nodes" ]; then
+    for node_dir in "$user_custom_nodes"/*; do
+      if [ -d "$node_dir" ] || [ -L "$node_dir" ]; then
+        local node_name=$(basename "$node_dir")
+        local target="$comfyui_runtime/custom_nodes/$node_name"
+
+        # Skip backup directories
+        if [[ "$node_name" == *.backup-* ]]; then
+          continue
+        fi
+
+        # Skip if already exists in runtime
+        if [ -e "$target" ]; then
+          continue
+        fi
+
+        ln -sfn "$node_dir" "$target"
+      fi
+    done
+  fi
 
   # Create and activate virtual environment with system packages
   if [ ! -d "$venv" ]; then
