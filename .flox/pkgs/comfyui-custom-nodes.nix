@@ -46,8 +46,8 @@ let
     rgthree-comfy = fetchFromGitHub {
       owner = "rgthree";
       repo = "rgthree-comfy";
-      rev = "v.1.0.0";
-      hash = "sha256-bzQcQ37v7ZrHDitZV6z3h/kdNbWxpLxNSvh0rSxnLss=";
+      rev = "eadc24ecc8bfc3c80fcc50724c0ebe74489f255b";  # v.1.0.0 + 380 commits (includes progress bar)
+      hash = "sha256-DFhPcFv8fq6mKQXhH0gKtUXNG06qVQo3XvdXB7b78TY=";
     };
 
     images-grid-comfy-plugin = fetchFromGitHub {
@@ -202,33 +202,10 @@ in stdenv.mkDerivation rec {
     substituteInPlace "$comfyroll_dir/nodes/nodes_xygrid.py" \
       --replace-fail 'fonts\Roboto-Regular.ttf' 'fonts/Roboto-Regular.ttf'
 
-    # Patch rgthree-comfy for Python 3.12+ compatibility
-    # Fixes invalid escape sequence \d in regex pattern
-    echo "Patching rgthree-comfy for Python 3.12+ compatibility..."
-    rgthree_dir="$out/share/comfyui/custom_nodes/rgthree-comfy"
-
-    # Convert CRLF to LF (Windows line endings)
-    sed -i 's/\r$//' "$rgthree_dir/__init__.py"
-    sed -i 's/\r$//' "$rgthree_dir/py/power_prompt.py"
-
-    substituteInPlace "$rgthree_dir/py/power_prompt.py" \
-      --replace-fail "pattern='<lora:" "pattern=r'<lora:"
-
-    # Patch rgthree-comfy to skip JS file copying (pre-copied during build)
-    # The original code unconditionally copies JS files to web/extensions on startup,
-    # which fails on read-only Nix store. We skip this since files are pre-installed.
-    echo "Patching rgthree-comfy to skip runtime JS installation..."
-    substituteInPlace "$rgthree_dir/__init__.py" \
-      --replace-fail 'if not os.path.exists(DIR_WEB_JS):
-    os.makedirs(DIR_WEB_JS)
-
-shutil.copytree(DIR_DEV_JS, DIR_WEB_JS, dirs_exist_ok=True)' '# JS files pre-installed during Nix build - skip runtime copy
-try:
-    if not os.path.exists(DIR_WEB_JS):
-        os.makedirs(DIR_WEB_JS)
-    shutil.copytree(DIR_DEV_JS, DIR_WEB_JS, dirs_exist_ok=True)
-except (PermissionError, shutil.Error, OSError):
-    pass  # Read-only filesystem (Nix store) - files already pre-installed'
+    # rgthree-comfy: No longer needs patches as of eadc24e
+    # - Uses WEB_DIRECTORY for ComfyUI's built-in web extension loading
+    # - No longer has the problematic escape sequences
+    echo "rgthree-comfy: No patches needed (newer version uses WEB_DIRECTORY)"
 
     # Patch ComfyUI_essentials for Python 3.12+ compatibility
     # Fixes invalid escape sequences in docstring regex examples

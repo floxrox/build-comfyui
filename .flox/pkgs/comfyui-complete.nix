@@ -210,11 +210,17 @@ in stdenv.mkDerivation rec {
     echo "Pre-copying JS extensions to web/extensions..."
     mkdir -p $out/share/comfyui/web/extensions
 
-    # rgthree-comfy: copies js/ to web/extensions/rgthree/
-    if [ -d "$out/share/comfyui/custom_nodes/rgthree-comfy/js" ]; then
+    # rgthree-comfy: copies web/ to web/extensions/rgthree/
+    # Newer versions use web/ directory structure with progress_bar.js and other components
+    if [ -d "$out/share/comfyui/custom_nodes/rgthree-comfy/web" ]; then
+      mkdir -p $out/share/comfyui/web/extensions/rgthree
+      cp -r $out/share/comfyui/custom_nodes/rgthree-comfy/web/* $out/share/comfyui/web/extensions/rgthree/
+      echo "  - Installed rgthree-comfy JS extensions (web/)"
+    elif [ -d "$out/share/comfyui/custom_nodes/rgthree-comfy/js" ]; then
+      # Fallback for older versions with js/ directory
       mkdir -p $out/share/comfyui/web/extensions/rgthree
       cp -r $out/share/comfyui/custom_nodes/rgthree-comfy/js/* $out/share/comfyui/web/extensions/rgthree/
-      echo "  - Installed rgthree-comfy JS extensions"
+      echo "  - Installed rgthree-comfy JS extensions (js/)"
     fi
 
     # ComfyUI-Custom-Scripts: copies web/ to web/extensions/pysssss/ComfyUI-Custom-Scripts/
