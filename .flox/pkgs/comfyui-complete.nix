@@ -224,12 +224,6 @@ in stdenv.mkDerivation rec {
       echo "  - Installed ComfyUI-Custom-Scripts JS extensions"
     fi
 
-    # Create logs directory for Comfyui-LayerForge (prevents permission error)
-    if [ -d "$out/share/comfyui/custom_nodes/Comfyui-LayerForge" ]; then
-      mkdir -p $out/share/comfyui/custom_nodes/Comfyui-LayerForge/logs
-      echo "  - Created LayerForge logs directory"
-    fi
-
     # Create the setup script (run at activation to install pip packages)
     cat > $out/bin/comfyui-setup << 'SETUP'
 #!/usr/bin/env bash

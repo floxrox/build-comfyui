@@ -189,6 +189,10 @@ in stdenv.mkDerivation rec {
     echo "Patching rgthree-comfy for Python 3.12+ compatibility..."
     rgthree_dir="$out/share/comfyui/custom_nodes/rgthree-comfy"
 
+    # Convert CRLF to LF (Windows line endings)
+    sed -i 's/\r$//' "$rgthree_dir/__init__.py"
+    sed -i 's/\r$//' "$rgthree_dir/py/power_prompt.py"
+
     substituteInPlace "$rgthree_dir/py/power_prompt.py" \
       --replace-fail "pattern='<lora:" "pattern=r'<lora:"
 
@@ -241,6 +245,13 @@ except PermissionError:
     # The code normally copies pysssss.default.json to pysssss.json on first run
     echo "Pre-creating config files for ComfyUI-Custom-Scripts..."
     cp "$customscripts_dir/pysssss.default.json" "$customscripts_dir/pysssss.json"
+
+    # Create logs directory for Comfyui-LayerForge (prevents permission error)
+    layerforge_dir="$out/share/comfyui/custom_nodes/Comfyui-LayerForge"
+    if [ -d "$layerforge_dir" ]; then
+      mkdir -p "$layerforge_dir/logs"
+      echo "Created LayerForge logs directory"
+    fi
 
     runHook postInstall
   '';
