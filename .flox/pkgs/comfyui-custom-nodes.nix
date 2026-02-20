@@ -271,6 +271,36 @@ except (PermissionError, shutil.Error, OSError):
       echo "Created LayerForge logs directory"
     fi
 
+    # Pre-create was_suite_config.json for was-node-suite-comfyui
+    # This config is normally created at runtime but fails on read-only Nix store
+    echo "Pre-creating was_suite_config.json for was-node-suite-comfyui..."
+    was_dir="$out/share/comfyui/custom_nodes/was-node-suite-comfyui"
+    if [ -d "$was_dir" ]; then
+      cat > "$was_dir/was_suite_config.json" << 'WASCONFIG'
+{
+    "run_requirements": false,
+    "suppress_uncomfy_warnings": true,
+    "show_startup_junk": true,
+    "show_inspiration_quote": true,
+    "text_nodes_type": "STRING",
+    "webui_styles": null,
+    "webui_styles_persistent_update": true,
+    "sam_model_vith_url": "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth",
+    "sam_model_vitl_url": "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth",
+    "sam_model_vitb_url": "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth",
+    "history_display_limit": 36,
+    "use_legacy_ascii_text": false,
+    "ffmpeg_bin_path": "ffmpeg",
+    "ffmpeg_extra_codecs": {
+        "avc1": ".mp4",
+        "h264": ".mkv"
+    },
+    "wildcard_api": true
+}
+WASCONFIG
+      echo "Created was_suite_config.json"
+    fi
+
     runHook postInstall
   '';
 
