@@ -54,6 +54,7 @@ let
   color-matcher = callPackage ./color-matcher.nix { };
   img2texture = callPackage ./img2texture.nix { };
   cstr = callPackage ./cstr.nix { };
+  comfy-aimdo = callPackage ./comfy-aimdo.nix { };
 
   # Custom node packages
   comfyui-plugins = callPackage ./comfyui-plugins.nix { };
@@ -133,6 +134,7 @@ let
     comfyui-thop
     pyloudnorm
     onnxruntime-noexecstack
+    comfy-aimdo
   ] ++ lib.optionals (stdenv.hostPlatform.system == "x86_64-linux") [
     comfyui-pixeloe
     comfyui-transparent-background
@@ -213,6 +215,7 @@ OUTPUT_DIR="''${COMFYUI_OUTPUT_DIR:-$WORK_DIR/output}"
 INPUT_DIR="''${COMFYUI_INPUT_DIR:-$WORK_DIR/input}"
 USER_DIR="''${COMFYUI_USER_DIR:-$WORK_DIR/user}"
 TEMP_DIR="''${COMFYUI_TEMP_DIR:-$WORK_DIR/temp}"
+VENV_DIR="''${COMFYUI_VENV_DIR:-$WORK_DIR/venv}"
 LISTEN="''${COMFYUI_LISTEN:-127.0.0.1}"
 PORT="''${COMFYUI_PORT:-8188}"
 
@@ -226,6 +229,7 @@ echo ""
 echo "Source:    $COMFYUI_SOURCE"
 echo "Work dir:  $WORK_DIR"
 echo "Models:    $MODELS_DIR"
+echo "Venv:      $VENV_DIR"
 echo "Listen:    $LISTEN:$PORT"
 echo ""
 
@@ -235,6 +239,18 @@ mkdir -p "$OUTPUT_DIR"
 mkdir -p "$INPUT_DIR"
 mkdir -p "$USER_DIR"
 mkdir -p "$TEMP_DIR"
+
+# Create venv with system site-packages if it doesn't exist
+# This allows ComfyUI Manager to pip install additional packages
+# while inheriting all packages from the Nix Python environment
+if [ ! -f "$VENV_DIR/bin/activate" ]; then
+    echo "Creating venv with system site-packages..."
+    python3 -m venv --system-site-packages "$VENV_DIR"
+    echo "Venv created at $VENV_DIR"
+fi
+
+# Activate the venv
+source "$VENV_DIR/bin/activate"
 
 # Create extra_model_paths.yaml if it doesn't exist
 EXTRA_PATHS="$WORK_DIR/extra_model_paths.yaml"
