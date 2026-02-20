@@ -217,7 +217,7 @@ set -e
 RUNTIME_VERSION="1.0.0"
 
 # Allow user to force reset: COMFYUI_RESET=1 flox activate
-if [ "${COMFYUI_RESET:-0}" = "1" ]; then
+if [ "''${COMFYUI_RESET:-0}" = "1" ]; then
   if [ -n "$FLOX_ENV_CACHE" ] && [ -d "$FLOX_ENV_CACHE" ]; then
     echo "COMFYUI_RESET=1 detected - clearing environment cache..."
     rm -rf "$FLOX_ENV_CACHE"
@@ -226,12 +226,12 @@ if [ "${COMFYUI_RESET:-0}" = "1" ]; then
 fi
 
 setup_comfyui() {
-  local venv="${COMFYUI_VENV_DIR:-$FLOX_ENV_CACHE/venv}"
-  local work_dir="${COMFYUI_WORK_DIR:-$HOME/comfyui-work}"
+  local venv="''${COMFYUI_VENV_DIR:-$FLOX_ENV_CACHE/venv}"
+  local work_dir="''${COMFYUI_WORK_DIR:-$HOME/comfyui-work}"
   local comfyui_source
 
   # Find ComfyUI source relative to this script
-  local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local script_dir="$(cd "$(dirname "''${BASH_SOURCE[0]}")" && pwd)"
   comfyui_source="$(dirname "$script_dir")/share/comfyui"
 
   # Helper: Get package requirement from ComfyUI's requirements.txt
@@ -239,7 +239,7 @@ setup_comfyui() {
     local package="$1"
     local req_file="$comfyui_source/requirements.txt"
     if [ -f "$req_file" ]; then
-      grep "^${package}[=><!]" "$req_file" 2>/dev/null | head -1
+      grep "^''${package}[=><!]" "$req_file" 2>/dev/null | head -1
     fi
   }
 
@@ -251,7 +251,7 @@ setup_comfyui() {
 
   # Create work directory structure
   mkdir -p "$work_dir"/{models,output,input,user,custom_nodes}
-  mkdir -p "${FLOX_ENV_CACHE:-$work_dir/.cache}"/{temp,uv,pip,logs}
+  mkdir -p "''${FLOX_ENV_CACHE:-$work_dir/.cache}"/{temp,uv,pip,logs}
 
   # Create and activate virtual environment with system packages
   if [ ! -d "$venv" ]; then
@@ -262,7 +262,7 @@ setup_comfyui() {
       python3 -m venv --system-site-packages "$venv"
     fi
     # Invalidate deps marker since venv is fresh
-    rm -f "${FLOX_ENV_CACHE:-$work_dir/.cache}/.comfyui_deps_installed"
+    rm -f "''${FLOX_ENV_CACHE:-$work_dir/.cache}/.comfyui_deps_installed"
   fi
 
   # Add venv to PATH for this script
@@ -271,7 +271,7 @@ setup_comfyui() {
   fi
 
   # Install ComfyUI pip dependencies if not already done
-  local deps_marker="${FLOX_ENV_CACHE:-$work_dir/.cache}/.comfyui_deps_installed"
+  local deps_marker="''${FLOX_ENV_CACHE:-$work_dir/.cache}/.comfyui_deps_installed"
   if [ ! -f "$deps_marker" ]; then
     echo "Installing ComfyUI pip dependencies..."
 
@@ -321,7 +321,7 @@ setup_comfyui() {
   fi
 
   # Create extra_model_paths.yaml if it doesn't exist
-  local extra_paths="${COMFYUI_EXTRA_MODEL_PATHS:-$work_dir/extra_model_paths.yaml}"
+  local extra_paths="''${COMFYUI_EXTRA_MODEL_PATHS:-$work_dir/extra_model_paths.yaml}"
   if [ ! -f "$extra_paths" ]; then
     cat > "$extra_paths" << 'YAML'
 comfyui_work:
