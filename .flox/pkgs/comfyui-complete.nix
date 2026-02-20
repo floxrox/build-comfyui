@@ -111,6 +111,7 @@ let
     onnx
     hydra-core    # Required by sam2
     iopath        # Required by sam2
+    dill          # Required by Impact-Subpack
   ] ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [
     albumentations
   ] ++ [
