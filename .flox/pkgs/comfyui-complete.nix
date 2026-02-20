@@ -649,8 +649,8 @@ echo "ComfyUI is ready at $URL"
 
 # Open browser
 if grep -qi microsoft /proc/version 2>/dev/null; then
-    # WSL - use Windows browser
-    cmd.exe /c start "$URL" 2>/dev/null || explorer.exe "$URL" 2>/dev/null || echo "Open $URL in your browser"
+    # WSL - use Windows cmd.exe to open default browser
+    /mnt/c/Windows/System32/cmd.exe /C start "" "$URL" >/dev/null 2>&1 || echo "Open $URL in your browser"
 elif command -v xdg-open &>/dev/null; then
     xdg-open "$URL"
 elif command -v open &>/dev/null; then
