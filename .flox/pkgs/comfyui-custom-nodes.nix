@@ -212,6 +212,11 @@ in stdenv.mkDerivation rec {
     substituteInPlace "$customscripts_dir/pysssss.py" \
       --replace-fail 'dir = os.path.dirname(inspect.getfile(PromptServer))' 'dir = os.environ.get("COMFYUI_BASE_DIR", os.path.dirname(inspect.getfile(PromptServer)))'
 
+    # Pre-create config files to avoid runtime writes to read-only store
+    # The code normally copies pysssss.default.json to pysssss.json on first run
+    echo "Pre-creating config files for ComfyUI-Custom-Scripts..."
+    cp "$customscripts_dir/pysssss.default.json" "$customscripts_dir/pysssss.json"
+
     runHook postInstall
   '';
 
