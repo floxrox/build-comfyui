@@ -203,6 +203,171 @@ in stdenv.mkDerivation rec {
     mkdir -p $out/share/comfyui/workflows
     cp -r ${comfyui-workflows}/share/comfyui/workflows/* $out/share/comfyui/workflows/ || true
 
+    # Create the setup script (run at activation to install pip packages)
+    cat > $out/bin/comfyui-setup << 'SETUP'
+#!/usr/bin/env bash
+#
+# ComfyUI Complete Setup
+# ======================
+# Sets up the venv and installs pip packages that can't be bundled in Nix.
+# Called from the Flox manifest [hook] on-activate.
+
+set -e
+
+RUNTIME_VERSION="1.0.0"
+
+# Allow user to force reset: COMFYUI_RESET=1 flox activate
+if [ "${COMFYUI_RESET:-0}" = "1" ]; then
+  if [ -n "$FLOX_ENV_CACHE" ] && [ -d "$FLOX_ENV_CACHE" ]; then
+    echo "COMFYUI_RESET=1 detected - clearing environment cache..."
+    rm -rf "$FLOX_ENV_CACHE"
+    echo "Cache cleared. Environment will be re-bootstrapped."
+  fi
+fi
+
+setup_comfyui() {
+  local venv="${COMFYUI_VENV_DIR:-$FLOX_ENV_CACHE/venv}"
+  local work_dir="${COMFYUI_WORK_DIR:-$HOME/comfyui-work}"
+  local comfyui_source
+
+  # Find ComfyUI source relative to this script
+  local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  comfyui_source="$(dirname "$script_dir")/share/comfyui"
+
+  # Helper: Get package requirement from ComfyUI's requirements.txt
+  get_comfyui_requirement() {
+    local package="$1"
+    local req_file="$comfyui_source/requirements.txt"
+    if [ -f "$req_file" ]; then
+      grep "^${package}[=><!]" "$req_file" 2>/dev/null | head -1
+    fi
+  }
+
+  # Verify ComfyUI source is available
+  if [ ! -d "$comfyui_source" ] || [ ! -f "$comfyui_source/main.py" ]; then
+    echo "ERROR: ComfyUI source not found at $comfyui_source"
+    return 1
+  fi
+
+  # Create work directory structure
+  mkdir -p "$work_dir"/{models,output,input,user,custom_nodes}
+  mkdir -p "${FLOX_ENV_CACHE:-$work_dir/.cache}"/{temp,uv,pip,logs}
+
+  # Create and activate virtual environment with system packages
+  if [ ! -d "$venv" ]; then
+    echo "Creating Python virtual environment with system packages..."
+    if command -v uv &> /dev/null; then
+      uv venv "$venv" --python python3 --system-site-packages
+    else
+      python3 -m venv --system-site-packages "$venv"
+    fi
+    # Invalidate deps marker since venv is fresh
+    rm -f "${FLOX_ENV_CACHE:-$work_dir/.cache}/.comfyui_deps_installed"
+  fi
+
+  # Add venv to PATH for this script
+  if [ -d "$venv/bin" ]; then
+    export PATH="$venv/bin:$PATH"
+  fi
+
+  # Install ComfyUI pip dependencies if not already done
+  local deps_marker="${FLOX_ENV_CACHE:-$work_dir/.cache}/.comfyui_deps_installed"
+  if [ ! -f "$deps_marker" ]; then
+    echo "Installing ComfyUI pip dependencies..."
+
+    # Use uv if available, else pip
+    local pip_cmd="pip install"
+    if command -v uv &> /dev/null; then
+      pip_cmd="uv pip install --python $venv/bin/python"
+    fi
+
+    # Install packages that need to be pip-installed
+    $pip_cmd \
+      comfyui-workflow-templates==0.8.15 \
+      comfyui-embedded-docs==0.4.0 \
+      "safetensors>=0.4.2"
+
+    # Install frontend package (version from ComfyUI's requirements.txt)
+    frontend_req=$(get_comfyui_requirement "comfyui-frontend-package")
+    if [ -n "$frontend_req" ]; then
+      echo "Installing $frontend_req..."
+      $pip_cmd "$frontend_req"
+    else
+      echo "Installing comfyui-frontend-package (fallback)..."
+      $pip_cmd "comfyui-frontend-package>=1.37.11"
+    fi
+
+    # Install comfy-kitchen without deps to avoid pulling torch from PyPI
+    if command -v uv &> /dev/null; then
+      uv pip install --python "$venv/bin/python" --no-deps "comfy-kitchen>=0.2.7"
+    else
+      pip install --no-deps "comfy-kitchen>=0.2.7"
+    fi
+
+    # Install kornia only on non-x86_64-linux platforms (we have it from Flox on Linux)
+    if [ "$(uname -m)" != "x86_64" ] || [ "$(uname -s)" != "Linux" ]; then
+      echo "Installing kornia via pip (not available in Flox for this platform)..."
+      if command -v uv &> /dev/null; then
+        uv pip install --no-deps --python "$venv/bin/python" "kornia>=0.7.1"
+        uv pip install --python "$venv/bin/python" kornia-rs
+      else
+        pip install --no-deps "kornia>=0.7.1"
+        pip install kornia-rs
+      fi
+    fi
+
+    touch "$deps_marker"
+    echo "ComfyUI pip dependencies installed successfully"
+  fi
+
+  # Create extra_model_paths.yaml if it doesn't exist
+  local extra_paths="${COMFYUI_EXTRA_MODEL_PATHS:-$work_dir/extra_model_paths.yaml}"
+  if [ ! -f "$extra_paths" ]; then
+    cat > "$extra_paths" << 'YAML'
+comfyui_work:
+    base_path: ~/comfyui-work/models
+    checkpoints: checkpoints/
+    clip: clip/
+    clip_vision: clip_vision/
+    controlnet: controlnet/
+    embeddings: embeddings/
+    gligen: gligen/
+    hypernetworks: hypernetworks/
+    loras: loras/
+    photomaker: photomaker/
+    style_models: style_models/
+    unet: unet/
+    upscale_models: upscale_models/
+    vae: vae/
+    vae_approx: vae_approx/
+    diffusion_models: diffusion_models/
+    ultralytics: ultralytics/
+    ultralytics_bbox: ultralytics/bbox/
+    ultralytics_segm: ultralytics/segm/
+    sams: sams/
+    mmdets: mmdets/
+    onnx: onnx/
+    ipadapter: ipadapter/
+    inpaint: inpaint/
+YAML
+    echo "Created $extra_paths"
+  fi
+}
+
+setup_comfyui
+
+echo ""
+echo "ComfyUI Complete - Setup finished"
+echo ""
+SETUP
+
+    chmod +x $out/bin/comfyui-setup
+
+    # Wrap setup script with Python environment
+    wrapProgram $out/bin/comfyui-setup \
+      --prefix PATH : ${pythonEnv}/bin \
+      --prefix PYTHONPATH : ${pythonEnv}/${python3.sitePackages}
+
     # Create the main launcher script
     cat > $out/bin/comfyui-start << 'LAUNCHER'
 #!/usr/bin/env bash
