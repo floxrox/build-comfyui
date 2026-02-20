@@ -2,7 +2,7 @@
 
 stdenv.mkDerivation {
   pname = "comfyui-workflows";
-  version = "1.0.2";
+  version = "1.0.3";  # Added API workflows
 
   src = ../../sources/workflows;
 
