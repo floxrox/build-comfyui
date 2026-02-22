@@ -56,29 +56,30 @@
 
 let
   # Torch-agnostic ML packages (rebuilt from source without torch deps)
-  comfyui-ultralytics = callPackage ./comfyui-ultralytics.nix { };
-  comfyui-timm = callPackage ./timm.nix { };
-  comfyui-open-clip-torch = callPackage ./open-clip-torch.nix { };
-  comfyui-accelerate = callPackage ./comfyui-accelerate.nix { };
-  comfyui-segment-anything = callPackage ./segment-anything.nix { };
-  comfyui-clip-interrogator = callPackage ./comfyui-clip-interrogator.nix { };
-  comfyui-transparent-background = callPackage ./comfyui-transparent-background.nix { };
-  comfyui-pixeloe = callPackage ./comfyui-pixeloe.nix { };
-  comfyui-spandrel = callPackage ./spandrel.nix { };
-  comfyui-peft = callPackage ./comfyui-peft.nix { };
-  comfyui-facexlib = callPackage ./comfyui-facexlib.nix { };
+  # Pass python3 through to ensure pyarrow fix propagates on Darwin
+  comfyui-ultralytics = callPackage ./comfyui-ultralytics.nix { inherit python3; };
+  comfyui-timm = callPackage ./timm.nix { inherit python3; };
+  comfyui-open-clip-torch = callPackage ./open-clip-torch.nix { inherit python3; };
+  comfyui-accelerate = callPackage ./comfyui-accelerate.nix { inherit python3; };
+  comfyui-segment-anything = callPackage ./segment-anything.nix { inherit python3; };
+  comfyui-clip-interrogator = callPackage ./comfyui-clip-interrogator.nix { inherit python3; };
+  comfyui-transparent-background = callPackage ./comfyui-transparent-background.nix { inherit python3; };
+  comfyui-pixeloe = callPackage ./comfyui-pixeloe.nix { inherit python3; };
+  comfyui-spandrel = callPackage ./spandrel.nix { inherit python3; };
+  comfyui-peft = callPackage ./comfyui-peft.nix { inherit python3; };
+  comfyui-facexlib = callPackage ./comfyui-facexlib.nix { inherit python3; };
 
   # Patched packages
-  onnxruntime-noexecstack = callPackage ./onnxruntime-noexecstack.nix { };
+  onnxruntime-noexecstack = callPackage ./onnxruntime-noexecstack.nix { inherit python3; };
 
   # Clean packages (no torch dependencies)
-  pyloudnorm = callPackage ./pyloudnorm.nix { };
-  colour-science = callPackage ./colour-science.nix { };
-  rembg = callPackage ./rembg.nix { inherit onnxruntime-noexecstack; };
-  ffmpy = callPackage ./ffmpy.nix { };
-  color-matcher = callPackage ./color-matcher.nix { };
-  img2texture = callPackage ./img2texture.nix { };
-  cstr = callPackage ./cstr.nix { };
+  pyloudnorm = callPackage ./pyloudnorm.nix { inherit python3; };
+  colour-science = callPackage ./colour-science.nix { inherit python3; };
+  rembg = callPackage ./rembg.nix { inherit python3; inherit onnxruntime-noexecstack; };
+  ffmpy = callPackage ./ffmpy.nix { inherit python3; };
+  color-matcher = callPackage ./color-matcher.nix { inherit python3; };
+  img2texture = callPackage ./img2texture.nix { inherit python3; };
+  cstr = callPackage ./cstr.nix { inherit python3; };
 in
 
 python3.pkgs.buildPythonPackage rec {

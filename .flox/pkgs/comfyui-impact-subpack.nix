@@ -26,10 +26,11 @@
 }:
 
 let
-  comfyui-thop = callPackage ./comfyui-thop.nix { };
-  comfyui-ultralytics = callPackage ./comfyui-ultralytics.nix { };
-  comfyui-segment-anything = callPackage ./segment-anything.nix { };
-  comfyui-sam2 = callPackage ./comfyui-sam2.nix { };
+  # Pass python3 through to ensure pyarrow fix propagates on Darwin
+  comfyui-thop = callPackage ./comfyui-thop.nix { inherit python3; };
+  comfyui-ultralytics = callPackage ./comfyui-ultralytics.nix { inherit python3; };
+  comfyui-segment-anything = callPackage ./segment-anything.nix { inherit python3; };
+  comfyui-sam2 = callPackage ./comfyui-sam2.nix { inherit python3; };
 in
 
 python3.pkgs.buildPythonPackage rec {

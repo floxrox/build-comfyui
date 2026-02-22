@@ -30,7 +30,8 @@
 
 let
   # Torch-agnostic timm (provides image model architectures)
-  comfyui-timm = callPackage ./timm.nix { };
+  # Pass python3 through to ensure pyarrow fix propagates on Darwin
+  comfyui-timm = callPackage ./timm.nix { inherit python3; };
 in
 
 python3.pkgs.buildPythonPackage rec {

@@ -72,11 +72,13 @@ let
   comfy-aimdo = callPackage ./comfy-aimdo.nix { python3 = python3Fixed; };
 
   # Custom node packages
-  comfyui-plugins = callPackage ./comfyui-plugins.nix { python3 = python3Fixed; };
+  # Note: comfyui-plugins, comfyui-custom-nodes, comfyui-videogen, comfyui-workflows
+  # are source-only packages (stdenv.mkDerivation) that don't accept python3
+  comfyui-plugins = callPackage ./comfyui-plugins.nix { };
   comfyui-impact-subpack = callPackage ./comfyui-impact-subpack.nix { python3 = python3Fixed; };
-  comfyui-custom-nodes = callPackage ./comfyui-custom-nodes.nix { python3 = python3Fixed; };
+  comfyui-custom-nodes = callPackage ./comfyui-custom-nodes.nix { };
   comfyui-controlnet-aux = callPackage ./comfyui-controlnet-aux.nix { python3 = python3Fixed; };
-  comfyui-videogen = callPackage ./comfyui-videogen.nix { python3 = python3Fixed; };
+  comfyui-videogen = callPackage ./comfyui-videogen.nix { };
   comfyui-workflows = callPackage ./comfyui-workflows.nix { };
 
   # Python with all dependencies
