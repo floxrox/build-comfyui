@@ -47,35 +47,36 @@ let
     python3;
 
   # Import all the torch-agnostic packages
-  comfyui-ultralytics = callPackage ./comfyui-ultralytics.nix { };
-  comfyui-timm = callPackage ./timm.nix { };
-  comfyui-open-clip-torch = callPackage ./open-clip-torch.nix { };
-  comfyui-accelerate = callPackage ./comfyui-accelerate.nix { };
-  comfyui-segment-anything = callPackage ./segment-anything.nix { };
-  comfyui-clip-interrogator = callPackage ./comfyui-clip-interrogator.nix { };
-  comfyui-transparent-background = callPackage ./comfyui-transparent-background.nix { };
-  comfyui-pixeloe = callPackage ./comfyui-pixeloe.nix { };
-  comfyui-spandrel = callPackage ./spandrel.nix { };
-  comfyui-peft = callPackage ./comfyui-peft.nix { };
-  comfyui-facexlib = callPackage ./comfyui-facexlib.nix { };
-  comfyui-sam2 = callPackage ./comfyui-sam2.nix { };
-  comfyui-thop = callPackage ./comfyui-thop.nix { };
-  onnxruntime-noexecstack = callPackage ./onnxruntime-noexecstack.nix { };
-  pyloudnorm = callPackage ./pyloudnorm.nix { };
-  colour-science = callPackage ./colour-science.nix { };
-  rembg = callPackage ./rembg.nix { inherit onnxruntime-noexecstack; };
-  ffmpy = callPackage ./ffmpy.nix { };
-  color-matcher = callPackage ./color-matcher.nix { };
-  img2texture = callPackage ./img2texture.nix { };
-  cstr = callPackage ./cstr.nix { };
-  comfy-aimdo = callPackage ./comfy-aimdo.nix { };
+  # Pass python3 = python3Fixed to ensure pyarrow fix propagates
+  comfyui-ultralytics = callPackage ./comfyui-ultralytics.nix { python3 = python3Fixed; };
+  comfyui-timm = callPackage ./timm.nix { python3 = python3Fixed; };
+  comfyui-open-clip-torch = callPackage ./open-clip-torch.nix { python3 = python3Fixed; };
+  comfyui-accelerate = callPackage ./comfyui-accelerate.nix { python3 = python3Fixed; };
+  comfyui-segment-anything = callPackage ./segment-anything.nix { python3 = python3Fixed; };
+  comfyui-clip-interrogator = callPackage ./comfyui-clip-interrogator.nix { python3 = python3Fixed; };
+  comfyui-transparent-background = callPackage ./comfyui-transparent-background.nix { python3 = python3Fixed; };
+  comfyui-pixeloe = callPackage ./comfyui-pixeloe.nix { python3 = python3Fixed; };
+  comfyui-spandrel = callPackage ./spandrel.nix { python3 = python3Fixed; };
+  comfyui-peft = callPackage ./comfyui-peft.nix { python3 = python3Fixed; };
+  comfyui-facexlib = callPackage ./comfyui-facexlib.nix { python3 = python3Fixed; };
+  comfyui-sam2 = callPackage ./comfyui-sam2.nix { python3 = python3Fixed; };
+  comfyui-thop = callPackage ./comfyui-thop.nix { python3 = python3Fixed; };
+  onnxruntime-noexecstack = callPackage ./onnxruntime-noexecstack.nix { python3 = python3Fixed; };
+  pyloudnorm = callPackage ./pyloudnorm.nix { python3 = python3Fixed; };
+  colour-science = callPackage ./colour-science.nix { python3 = python3Fixed; };
+  rembg = callPackage ./rembg.nix { python3 = python3Fixed; inherit onnxruntime-noexecstack; };
+  ffmpy = callPackage ./ffmpy.nix { python3 = python3Fixed; };
+  color-matcher = callPackage ./color-matcher.nix { python3 = python3Fixed; };
+  img2texture = callPackage ./img2texture.nix { python3 = python3Fixed; };
+  cstr = callPackage ./cstr.nix { python3 = python3Fixed; };
+  comfy-aimdo = callPackage ./comfy-aimdo.nix { python3 = python3Fixed; };
 
   # Custom node packages
-  comfyui-plugins = callPackage ./comfyui-plugins.nix { };
-  comfyui-impact-subpack = callPackage ./comfyui-impact-subpack.nix { };
-  comfyui-custom-nodes = callPackage ./comfyui-custom-nodes.nix { };
-  comfyui-controlnet-aux = callPackage ./comfyui-controlnet-aux.nix { };
-  comfyui-videogen = callPackage ./comfyui-videogen.nix { };
+  comfyui-plugins = callPackage ./comfyui-plugins.nix { python3 = python3Fixed; };
+  comfyui-impact-subpack = callPackage ./comfyui-impact-subpack.nix { python3 = python3Fixed; };
+  comfyui-custom-nodes = callPackage ./comfyui-custom-nodes.nix { python3 = python3Fixed; };
+  comfyui-controlnet-aux = callPackage ./comfyui-controlnet-aux.nix { python3 = python3Fixed; };
+  comfyui-videogen = callPackage ./comfyui-videogen.nix { python3 = python3Fixed; };
   comfyui-workflows = callPackage ./comfyui-workflows.nix { };
 
   # Python with all dependencies
