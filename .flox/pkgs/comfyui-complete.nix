@@ -32,6 +32,20 @@ let
   # ComfyUI version
   comfyuiVersion = "0.14.2";
 
+  # Fix pyarrow tests on Darwin
+  # test_timezone_absent fails because macOS handles timezone lookups differently
+  # We override python3 so its .pkgs attribute has pyarrow with tests disabled
+  python3Fixed = if stdenv.hostPlatform.isDarwin then
+    python3.override {
+      packageOverrides = pfinal: pprev: {
+        pyarrow = pprev.pyarrow.overridePythonAttrs (old: {
+          doCheck = false;
+        });
+      };
+    }
+  else
+    python3;
+
   # Import all the torch-agnostic packages
   comfyui-ultralytics = callPackage ./comfyui-ultralytics.nix { };
   comfyui-timm = callPackage ./timm.nix { };
@@ -65,7 +79,7 @@ let
   comfyui-workflows = callPackage ./comfyui-workflows.nix { };
 
   # Python with all dependencies
-  pythonEnv = python3.withPackages (ps: with ps; [
+  pythonEnv = python3Fixed.withPackages (ps: with ps; [
     # Core ComfyUI dependencies
     torch
     torchvision
@@ -534,7 +548,7 @@ SETUP
     # Wrap setup script with Python environment
     wrapProgram $out/bin/comfyui-setup \
       --prefix PATH : ${pythonEnv}/bin \
-      --prefix PYTHONPATH : ${pythonEnv}/${python3.sitePackages}
+      --prefix PYTHONPATH : ${pythonEnv}/${python3Fixed.sitePackages}
 
     # Create the main launcher script
     cat > $out/bin/comfyui-start << 'LAUNCHER'
@@ -660,7 +674,7 @@ LAUNCHER
     # Wrap the launcher with Python environment
     wrapProgram $out/bin/comfyui-start \
       --prefix PATH : ${pythonEnv}/bin \
-      --prefix PYTHONPATH : ${pythonEnv}/${python3.sitePackages}
+      --prefix PYTHONPATH : ${pythonEnv}/${python3Fixed.sitePackages}
 
     # Create 'start' script - starts service and opens browser
     cat > $out/bin/start << 'START_SCRIPT'
