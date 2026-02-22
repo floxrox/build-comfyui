@@ -182,6 +182,19 @@ in stdenv.mkDerivation rec {
     rm -rf $out/share/comfyui/user
     rm -rf $out/share/comfyui/models
 
+    # FLOX_BUILD_RUNTIME_VERSION marker
+    # This tracks iterations of the build recipe, not ComfyUI version.
+    # Increment this when changing the build/setup logic.
+    cat > $out/share/comfyui/.flox-build-v7 << 'FLOX_BUILD'
+FLOX_BUILD_RUNTIME_VERSION=7
+description: Fix workflow permissions, add build recipe versioning
+date: 2026-02-22
+changes:
+  - Add chmod -R u+w after copying workflows to fix permission denied errors
+  - Introduce FLOX_BUILD_RUNTIME_VERSION marker files
+  - Print build version to logs at startup
+FLOX_BUILD
+
     # Create custom_nodes directory and install all custom nodes
     mkdir -p $out/share/comfyui/custom_nodes
 
@@ -241,7 +254,7 @@ in stdenv.mkDerivation rec {
 
 set -e
 
-RUNTIME_VERSION="1.1.0"
+RUNTIME_VERSION="1.2.0"
 
 # Allow user to force reset: COMFYUI_RESET=1 flox activate
 if [ "''${COMFYUI_RESET:-0}" = "1" ]; then
@@ -274,6 +287,18 @@ setup_comfyui() {
   if [ ! -d "$comfyui_source" ] || [ ! -f "$comfyui_source/main.py" ]; then
     echo "ERROR: ComfyUI source not found at $comfyui_source"
     return 1
+  fi
+
+  # Print FLOX_BUILD_RUNTIME_VERSION for debugging
+  # This appears in: flox services logs comfyui --follow
+  local flox_build_marker
+  flox_build_marker=$(ls "$comfyui_source"/.flox-build-v* 2>/dev/null | head -1)
+  if [ -n "$flox_build_marker" ]; then
+    echo "=============================================="
+    echo "FLOX_BUILD_RUNTIME_VERSION: $(basename "$flox_build_marker" | sed 's/.flox-build-v//')"
+    echo "RUNTIME_VERSION: $RUNTIME_VERSION"
+    echo "Source: $comfyui_source"
+    echo "=============================================="
   fi
 
   # Create work directory structure
@@ -389,6 +414,7 @@ setup_comfyui() {
         if [ ! -d "$target" ]; then
           echo "Installing workflow: $workflow_name" >&2
           cp -r "$workflow_dir" "$target"
+          chmod -R u+w "$target" 2>/dev/null || true
         fi
       fi
     done
