@@ -229,11 +229,18 @@ in stdenv.mkDerivation rec {
     # Increment this when changing the build/setup logic.
     cat > $out/share/comfyui/.flox-build-v10 << 'FLOX_BUILD'
 FLOX_BUILD_RUNTIME_VERSION=10
-description: Patch nodes.py to handle broken symlinks
+description: Patch nodes.py to handle broken symlinks in custom_nodes
 date: 2026-02-23
-changes:
-  - Add postPatch to fix UnboundLocalError when loading broken symlinks
-  - Gracefully skip invalid module paths in custom_nodes loading
+problem:
+  ComfyUI nodes.py crashes with UnboundLocalError when custom_nodes
+  contains broken symlinks. The code sets sys_module_name only when
+  os.path.isfile() or os.path.isdir() returns True. Broken symlinks
+  fail both checks, so sys_module_name is never set, but the code
+  continues and tries to use it, causing the crash.
+fix:
+  Add postPatch that inserts an else clause to gracefully skip
+  invalid module paths (broken symlinks, missing files, etc.)
+  with a warning instead of crashing.
 FLOX_BUILD
 
     # Create custom_nodes directory and install all custom nodes
