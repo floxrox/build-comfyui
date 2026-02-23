@@ -32,13 +32,17 @@ let
   # ComfyUI version
   comfyuiVersion = "0.10.0";
 
-  # Fix pyarrow tests on Darwin
-  # test_timezone_absent fails because macOS handles timezone lookups differently
-  # We override python3 so its .pkgs attribute has pyarrow with tests disabled
+  # Fix test failures on Darwin
+  # - pyarrow: test_timezone_absent fails because macOS handles timezone lookups differently
+  # - dask: test_series_aggregations_multilevel crashes workers on aarch64-darwin
+  # We override python3 so its .pkgs attribute has these packages with tests disabled
   python3Fixed = if stdenv.hostPlatform.isDarwin then
     python3.override {
       packageOverrides = pfinal: pprev: {
         pyarrow = pprev.pyarrow.overridePythonAttrs (old: {
+          doCheck = false;
+        });
+        dask = pprev.dask.overridePythonAttrs (old: {
           doCheck = false;
         });
       };
