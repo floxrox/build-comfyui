@@ -35,6 +35,7 @@ let
   # Fix test failures on Darwin
   # - pyarrow: test_timezone_absent fails because macOS handles timezone lookups differently
   # - dask: test_series_aggregations_multilevel crashes workers on aarch64-darwin
+  #         pythonImportsCheck also fails because dask.array requires numpy at import time
   # We override python3 so its .pkgs attribute has these packages with tests disabled
   python3Fixed = if stdenv.hostPlatform.isDarwin then
     python3.override {
@@ -44,6 +45,7 @@ let
         });
         dask = pprev.dask.overridePythonAttrs (old: {
           doCheck = false;
+          pythonImportsCheck = [];  # dask.array requires numpy which isn't available during check
         });
       };
     }
