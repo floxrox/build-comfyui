@@ -9,35 +9,39 @@
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        # Overlay to fix pyarrow tests on Darwin
-        # test_timezone_absent fails because macOS handles timezone lookups differently
+        # Overlay to fix test failures on Darwin
+        # - pyarrow: test_timezone_absent fails because macOS handles timezone lookups differently
+        # - dask: test_series_aggregations_multilevel crashes workers on aarch64-darwin
         # We override the python interpreters so their .pkgs attribute has the fix
-        pyarrowFix = pfinal: pprev: {
+        pythonDarwinFix = pfinal: pprev: {
           pyarrow = pprev.pyarrow.overridePythonAttrs (old: {
+            doCheck = false;
+          });
+          dask = pprev.dask.overridePythonAttrs (old: {
             doCheck = false;
           });
         };
 
-        pyarrowDarwinFix = final: prev:
+        darwinOverlay = final: prev:
           if prev.stdenv.hostPlatform.isDarwin then {
             # Override python interpreters so python.pkgs has the fix
             python3 = prev.python3.override {
-              packageOverrides = pyarrowFix;
+              packageOverrides = pythonDarwinFix;
             };
             python313 = prev.python313.override {
-              packageOverrides = pyarrowFix;
+              packageOverrides = pythonDarwinFix;
             };
             python312 = prev.python312.override {
-              packageOverrides = pyarrowFix;
+              packageOverrides = pythonDarwinFix;
             };
             python311 = prev.python311.override {
-              packageOverrides = pyarrowFix;
+              packageOverrides = pythonDarwinFix;
             };
           } else {};
 
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ pyarrowDarwinFix ];
+          overlays = [ darwinOverlay ];
           config = {
             allowUnfree = true;
           };
@@ -50,7 +54,7 @@
         # Re-export pkgs with the overlay applied
         legacyPackages = pkgs;
 
-        # Build packages using pkgs with pyarrow darwin fix overlay applied
+        # Build packages using pkgs with Darwin test fix overlay applied
         packages = {
           # Main package
           comfyui-complete = callPkg "comfyui-complete";
