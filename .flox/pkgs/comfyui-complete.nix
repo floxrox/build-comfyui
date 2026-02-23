@@ -385,7 +385,8 @@ setup_comfyui() {
         local target="$user_custom_nodes/$node_name"
 
         # Copy node to user work directory if it doesn't exist
-        if [ ! -d "$target" ]; then
+        # Check for both existence (-e) and symlinks (-L) to handle broken symlinks
+        if [ ! -e "$target" ] && [ ! -L "$target" ]; then
           echo "Installing custom node: $node_name" >&2
           cp -RL "$node_dir" "$target"
           chmod -R u+w "$target" 2>/dev/null || true
