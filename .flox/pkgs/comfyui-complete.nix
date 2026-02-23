@@ -227,15 +227,14 @@ in stdenv.mkDerivation rec {
     # FLOX_BUILD_RUNTIME_VERSION marker
     # This tracks iterations of the build recipe, not ComfyUI version.
     # Increment this when changing the build/setup logic.
-    cat > $out/share/comfyui/.flox-build-v11 << 'FLOX_BUILD'
-FLOX_BUILD_RUNTIME_VERSION=11
-description: Auto-replace broken symlinks in custom_nodes
+    cat > $out/share/comfyui/.flox-build-v12 << 'FLOX_BUILD'
+FLOX_BUILD_RUNTIME_VERSION=12
+description: Add matrix-nio for ComfyUI-Manager matrix sharing
 date: 2026-02-23
 change:
-  Setup script now automatically removes broken symlinks in custom_nodes
-  before copying bundled nodes. A broken symlink (symlink exists but
-  target doesn't) is useless, so we replace it with a working version
-  from the bundle instead of skipping it.
+  Add matrix-nio>=0.24 to pip dependencies. This enables the matrix
+  sharing feature in ComfyUI-Manager which was previously disabled
+  due to missing dependency.
 FLOX_BUILD
 
     # Create custom_nodes directory and install all custom nodes
@@ -503,7 +502,8 @@ setup_comfyui() {
       comfyui-workflow-templates==0.8.15 \
       comfyui-embedded-docs==0.4.0 \
       "safetensors>=0.4.2" \
-      "comfyui_manager>=4.0"
+      "comfyui_manager>=4.0" \
+      "matrix-nio>=0.24"  # ComfyUI-Manager matrix sharing feature
 
     # Install frontend package (version from ComfyUI's requirements.txt)
     frontend_req=$(get_comfyui_requirement "comfyui-frontend-package")
