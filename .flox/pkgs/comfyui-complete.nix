@@ -180,6 +180,25 @@ in stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ makeWrapper ];
 
+  # Patch: Handle broken symlinks gracefully in custom_nodes loading
+  # Without this fix, broken symlinks cause UnboundLocalError for sys_module_name
+  # because the code only sets it for isfile() or isdir(), not for broken symlinks.
+  postPatch = ''
+    substituteInPlace nodes.py \
+      --replace-fail \
+'    elif os.path.isdir(module_path):
+        sys_module_name = module_path.replace(".", "_x_")
+
+    try:' \
+'    elif os.path.isdir(module_path):
+        sys_module_name = module_path.replace(".", "_x_")
+    else:
+        logging.warning(f"Skipping invalid module path (broken symlink?): {module_path}")
+        return False
+
+    try:'
+  '';
+
   dontBuild = true;
   dontConfigure = true;
 
@@ -208,14 +227,13 @@ in stdenv.mkDerivation rec {
     # FLOX_BUILD_RUNTIME_VERSION marker
     # This tracks iterations of the build recipe, not ComfyUI version.
     # Increment this when changing the build/setup logic.
-    cat > $out/share/comfyui/.flox-build-v9 << 'FLOX_BUILD'
-FLOX_BUILD_RUNTIME_VERSION=9
-description: Fix custom node copy when target is symlink
+    cat > $out/share/comfyui/.flox-build-v10 << 'FLOX_BUILD'
+FLOX_BUILD_RUNTIME_VERSION=10
+description: Patch nodes.py to handle broken symlinks
 date: 2026-02-23
 changes:
-  - Fix setup script failing when user has existing symlinks in custom_nodes
-  - Check both -e and -L to properly handle symlinks and broken symlinks
-  - Skip copying bundled nodes if target exists in any form
+  - Add postPatch to fix UnboundLocalError when loading broken symlinks
+  - Gracefully skip invalid module paths in custom_nodes loading
 FLOX_BUILD
 
     # Create custom_nodes directory and install all custom nodes
