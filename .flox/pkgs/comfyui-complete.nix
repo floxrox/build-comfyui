@@ -208,14 +208,14 @@ in stdenv.mkDerivation rec {
     # FLOX_BUILD_RUNTIME_VERSION marker
     # This tracks iterations of the build recipe, not ComfyUI version.
     # Increment this when changing the build/setup logic.
-    cat > $out/share/comfyui/.flox-build-v7 << 'FLOX_BUILD'
-FLOX_BUILD_RUNTIME_VERSION=7
-description: Fix workflow permissions, add build recipe versioning
-date: 2026-02-22
+    cat > $out/share/comfyui/.flox-build-v9 << 'FLOX_BUILD'
+FLOX_BUILD_RUNTIME_VERSION=9
+description: Fix custom node copy when target is symlink
+date: 2026-02-23
 changes:
-  - Add chmod -R u+w after copying workflows to fix permission denied errors
-  - Introduce FLOX_BUILD_RUNTIME_VERSION marker files
-  - Print build version to logs at startup
+  - Fix setup script failing when user has existing symlinks in custom_nodes
+  - Check both -e and -L to properly handle symlinks and broken symlinks
+  - Skip copying bundled nodes if target exists in any form
 FLOX_BUILD
 
     # Create custom_nodes directory and install all custom nodes
