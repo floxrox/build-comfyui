@@ -227,20 +227,15 @@ in stdenv.mkDerivation rec {
     # FLOX_BUILD_RUNTIME_VERSION marker
     # This tracks iterations of the build recipe, not ComfyUI version.
     # Increment this when changing the build/setup logic.
-    cat > $out/share/comfyui/.flox-build-v10 << 'FLOX_BUILD'
-FLOX_BUILD_RUNTIME_VERSION=10
-description: Patch nodes.py to handle broken symlinks in custom_nodes
+    cat > $out/share/comfyui/.flox-build-v11 << 'FLOX_BUILD'
+FLOX_BUILD_RUNTIME_VERSION=11
+description: Auto-replace broken symlinks in custom_nodes
 date: 2026-02-23
-problem:
-  ComfyUI nodes.py crashes with UnboundLocalError when custom_nodes
-  contains broken symlinks. The code sets sys_module_name only when
-  os.path.isfile() or os.path.isdir() returns True. Broken symlinks
-  fail both checks, so sys_module_name is never set, but the code
-  continues and tries to use it, causing the crash.
-fix:
-  Add postPatch that inserts an else clause to gracefully skip
-  invalid module paths (broken symlinks, missing files, etc.)
-  with a warning instead of crashing.
+change:
+  Setup script now automatically removes broken symlinks in custom_nodes
+  before copying bundled nodes. A broken symlink (symlink exists but
+  target doesn't) is useless, so we replace it with a working version
+  from the bundle instead of skipping it.
 FLOX_BUILD
 
     # Create custom_nodes directory and install all custom nodes
@@ -410,9 +405,15 @@ setup_comfyui() {
         local node_name=$(basename "$node_dir")
         local target="$user_custom_nodes/$node_name"
 
+        # Remove broken symlinks (symlink exists but target doesn't)
+        # These are useless and should be replaced with working versions
+        if [ -L "$target" ] && [ ! -e "$target" ]; then
+          echo "Removing broken symlink: $node_name" >&2
+          rm -f "$target"
+        fi
+
         # Copy node to user work directory if it doesn't exist
-        # Check for both existence (-e) and symlinks (-L) to handle broken symlinks
-        if [ ! -e "$target" ] && [ ! -L "$target" ]; then
+        if [ ! -e "$target" ]; then
           echo "Installing custom node: $node_name" >&2
           cp -RL "$node_dir" "$target"
           chmod -R u+w "$target" 2>/dev/null || true
