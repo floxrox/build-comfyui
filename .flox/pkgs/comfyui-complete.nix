@@ -135,8 +135,9 @@ let
     hydra-core    # Required by sam2
     iopath        # Required by sam2
     dill          # Required by Impact-Subpack
-    pyopengl           # Required by nodes_glsl.py (v0.15.0+)
+    pyopengl             # Required by nodes_glsl.py (v0.15.0+)
     pyopengl-accelerate  # Required by nodes_glsl.py (v0.15.0+)
+    glfw                 # Required by nodes_glsl.py (v0.15.0+)
   ] ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [
     albumentations
   ] ++ [
@@ -229,14 +230,13 @@ in stdenv.mkDerivation rec {
     # FLOX_BUILD_RUNTIME_VERSION marker
     # This tracks iterations of the build recipe, not ComfyUI version.
     # Increment this when changing the build/setup logic.
-    cat > $out/share/comfyui/.flox-build-v14 << 'FLOX_BUILD'
-FLOX_BUILD_RUNTIME_VERSION=14
-description: Add PyOpenGL dependencies for nodes_glsl.py
+    cat > $out/share/comfyui/.flox-build-v15 << 'FLOX_BUILD'
+FLOX_BUILD_RUNTIME_VERSION=15
+description: Add glfw for nodes_glsl.py GLSL shader support
 date: 2026-02-25
 change:
-  ComfyUI v0.15.0 adds GLSL shader nodes (nodes_glsl.py) which require
-  OpenGL dependencies. Added pyopengl and pyopengl-accelerate to the
-  pythonEnv to satisfy these requirements.
+  ComfyUI v0.15.0's nodes_glsl.py requires both PyOpenGL AND glfw.
+  Added glfw to pythonEnv alongside pyopengl and pyopengl-accelerate.
 FLOX_BUILD
 
     # Create custom_nodes directory and install all custom nodes
