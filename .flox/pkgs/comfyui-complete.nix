@@ -30,7 +30,7 @@
 
 let
   # ComfyUI version
-  comfyuiVersion = "0.14.2";
+  comfyuiVersion = "0.15.0";
 
   # Fix test failures on Darwin
   # - pyarrow: test_timezone_absent fails because macOS handles timezone lookups differently
@@ -169,7 +169,7 @@ let
     owner = "comfyanonymous";
     repo = "ComfyUI";
     rev = "v${comfyuiVersion}";
-    hash = "sha256-rrkVEnoWp0BBFZS4fMHo72aYZSxy0I3O8C9DMKXsr88=";
+    hash = "sha256-IENMvLEmLuKEjw+yIsIbXorF3BmIqYyV+FGxgbccLz8=";
   };
 
 in stdenv.mkDerivation rec {
