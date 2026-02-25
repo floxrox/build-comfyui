@@ -227,14 +227,17 @@ in stdenv.mkDerivation rec {
     # FLOX_BUILD_RUNTIME_VERSION marker
     # This tracks iterations of the build recipe, not ComfyUI version.
     # Increment this when changing the build/setup logic.
-    cat > $out/share/comfyui/.flox-build-v12 << 'FLOX_BUILD'
-FLOX_BUILD_RUNTIME_VERSION=12
-description: Add matrix-nio for ComfyUI-Manager matrix sharing
-date: 2026-02-23
+    cat > $out/share/comfyui/.flox-build-v13 << 'FLOX_BUILD'
+FLOX_BUILD_RUNTIME_VERSION=13
+description: Fix Python version mismatch in venv creation
+date: 2026-02-25
 change:
-  Add matrix-nio>=0.24 to pip dependencies. This enables the matrix
-  sharing feature in ComfyUI-Manager which was previously disabled
-  due to missing dependency.
+  Fix venv being created with wrong Python version. The uv tool has its
+  own Python discovery mechanism that ignores the wrapper's PATH. Changed
+  'uv venv --python python3' to 'uv venv --python "$python_path"' where
+  python_path is the explicit path from 'command -v python3'. This ensures
+  the venv uses the bundled Python from pythonEnv, not system Python.
+  Also added diagnostic output showing which Python is being used.
 FLOX_BUILD
 
     # Create custom_nodes directory and install all custom nodes
@@ -472,8 +475,16 @@ setup_comfyui() {
   # Create and activate virtual environment with system packages
   if [ ! -d "$venv" ]; then
     echo "Creating Python virtual environment with system packages..."
+    # Get the actual python3 path from our environment (respects wrapper PATH)
+    # This ensures we use the bundled Python, not system Python
+    local python_path
+    python_path="$(command -v python3)"
+    echo "Using Python: $python_path"
+    echo "Python version: $(python3 --version)"
+
     if command -v uv &> /dev/null; then
-      uv venv "$venv" --python python3 --system-site-packages
+      # Pass explicit path to uv so it doesn't use its own Python discovery
+      uv venv "$venv" --python "$python_path" --system-site-packages
     else
       python3 -m venv --system-site-packages "$venv"
     fi
