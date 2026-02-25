@@ -135,6 +135,8 @@ let
     hydra-core    # Required by sam2
     iopath        # Required by sam2
     dill          # Required by Impact-Subpack
+    pyopengl           # Required by nodes_glsl.py (v0.15.0+)
+    pyopengl-accelerate  # Required by nodes_glsl.py (v0.15.0+)
   ] ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [
     albumentations
   ] ++ [
@@ -227,17 +229,14 @@ in stdenv.mkDerivation rec {
     # FLOX_BUILD_RUNTIME_VERSION marker
     # This tracks iterations of the build recipe, not ComfyUI version.
     # Increment this when changing the build/setup logic.
-    cat > $out/share/comfyui/.flox-build-v13 << 'FLOX_BUILD'
-FLOX_BUILD_RUNTIME_VERSION=13
-description: Fix Python version mismatch in venv creation
+    cat > $out/share/comfyui/.flox-build-v14 << 'FLOX_BUILD'
+FLOX_BUILD_RUNTIME_VERSION=14
+description: Add PyOpenGL dependencies for nodes_glsl.py
 date: 2026-02-25
 change:
-  Fix venv being created with wrong Python version. The uv tool has its
-  own Python discovery mechanism that ignores the wrapper's PATH. Changed
-  'uv venv --python python3' to 'uv venv --python "$python_path"' where
-  python_path is the explicit path from 'command -v python3'. This ensures
-  the venv uses the bundled Python from pythonEnv, not system Python.
-  Also added diagnostic output showing which Python is being used.
+  ComfyUI v0.15.0 adds GLSL shader nodes (nodes_glsl.py) which require
+  OpenGL dependencies. Added pyopengl and pyopengl-accelerate to the
+  pythonEnv to satisfy these requirements.
 FLOX_BUILD
 
     # Create custom_nodes directory and install all custom nodes
