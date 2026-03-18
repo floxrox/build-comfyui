@@ -36,6 +36,9 @@ build-comfyui/
 │   └── pkgs/
 │       └── comfyui.nix        # Main package definition
 ├── scripts/
+│   ├── comfyui-start              # Service launcher (GPU detect, flags)
+│   ├── comfyui-setup              # Environment bootstrap (on-activate hook)
+│   ├── start                      # Quick-start helper (service + browser)
 │   ├── comfyui-download-sd15.py   # SD 1.5 downloader
 │   ├── comfyui-download-sdxl.py   # SDXL 1.0 downloader
 │   ├── comfyui-download-sd35.py   # SD 3.5 Large downloader
@@ -85,6 +88,27 @@ Environment variables:
 | `HF_TOKEN` | HuggingFace access token (required for gated models) |
 | `COMFYUI_MODELS_DIR` | Override model download directory directly |
 | `COMFYUI_WORK_DIR` | Override work directory (models go in `$COMFYUI_WORK_DIR/models`) |
+
+## Utility Scripts
+
+The `scripts/` directory also contains shell scripts for environment setup and service management. These are installed to `$out/bin/` alongside the model downloaders.
+
+| Command | Purpose |
+|---------|---------|
+| `comfyui-start` | Service launcher — detects GPU, builds flags, `exec`s Python |
+| `comfyui-setup` | Environment bootstrap — venv, runtime dir, custom nodes (on-activate hook) |
+| `start` | Quick-start helper — starts the service and opens a browser |
+
+### `comfyui-start` environment variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `COMFYUI_DEVICE` | `auto` | Force device: `auto`, `cpu`, or `gpu` |
+| `COMFYUI_ENABLE_MANAGER` | `1` | Set to `0` to disable ComfyUI-Manager |
+| `COMFYUI_LISTEN` | `127.0.0.1` | Server listen address |
+| `COMFYUI_PORT` | `8188` | Server listen port |
+
+GPU detection uses `torch.accelerator` (PyTorch 2.5+) with fallback to `torch.cuda` / `torch.backends.mps` for older versions.
 
 ## Patches
 

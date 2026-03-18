@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+#
+# ComfyUI Service Launcher
+# ========================
+# Starts the ComfyUI server process.
+# Used as the service command in the Flox manifest.
+#
+# Required environment variables (set by Flox manifest [vars]):
+#   FLOX_ENV_CACHE             - Path to environment cache
+#   COMFYUI_PORT               - Server listen port
+#   COMFYUI_LISTEN             - Server listen address
+#   COMFYUI_EXTRA_MODEL_PATHS  - Path to extra_model_paths.yaml
+#
+# Optional environment variables:
+#   COMFYUI_DEVICE             - Force device: auto (default), cpu, gpu
+#   COMFYUI_ENABLE_MANAGER     - Enable ComfyUI-Manager: 1 (default) or 0
+
+set -e
+
+# Paths derived from Flox environment
+PYTHON="$FLOX_ENV_CACHE/venv/bin/python"
+MAIN_PY="$FLOX_ENV_CACHE/comfyui-runtime/main.py"
+
+# Defaults
+COMFYUI_PORT="${COMFYUI_PORT:-8188}"
+COMFYUI_LISTEN="${COMFYUI_LISTEN:-127.0.0.1}"
+COMFYUI_DEVICE="${COMFYUI_DEVICE:-auto}"
+COMFYUI_ENABLE_MANAGER="${COMFYUI_ENABLE_MANAGER:-1}"
+
+# Ensure service logs appear immediately
+export PYTHONUNBUFFERED=1
+
+# Detect GPU / accelerator
+detect_device() {
+  if [ "$COMFYUI_DEVICE" != "auto" ]; then
+    echo "$COMFYUI_DEVICE"
+    return
+  fi
+  "$PYTHON" -c "
+import torch
+try:
+    accel = torch.accelerator.current_accelerator()
+    if torch.accelerator.is_available():
+        print(accel)
+    else:
+        print('cpu')
+except AttributeError:
+    # torch < 2.5 — fall back to individual checks
+    if torch.cuda.is_available():
+        print('cuda')
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+        print('mps')
+    else:
+        print('cpu')
+" 2>/dev/null || echo "cpu"
+}
+
+DEVICE=$(detect_device)
+
+# Build argument list
+args=(
+  "$MAIN_PY"
+  --listen "$COMFYUI_LISTEN"
+  --port "$COMFYUI_PORT"
+)
+
+# Add extra model paths config if the file exists
+if [ -f "$COMFYUI_EXTRA_MODEL_PATHS" ]; then
+  args+=(--extra-model-paths-config "$COMFYUI_EXTRA_MODEL_PATHS")
+fi
+
+# Force CPU mode if detected/requested
+if [ "$DEVICE" = "cpu" ]; then
+  args+=(--cpu)
+fi
+
+# Enable ComfyUI-Manager unless explicitly disabled
+if [ "$COMFYUI_ENABLE_MANAGER" != "0" ]; then
+  args+=(--enable-manager)
+fi
+
+# Startup log
+echo "ComfyUI starting"
+echo "  Python:  $PYTHON"
+echo "  Device:  $DEVICE"
+echo "  Listen:  $COMFYUI_LISTEN:$COMFYUI_PORT"
+
+exec "$PYTHON" "${args[@]}"
