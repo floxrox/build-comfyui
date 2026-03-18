@@ -32,25 +32,28 @@ let
   # ComfyUI version
   comfyuiVersion = "0.15.0";
 
-  # Fix test failures on Darwin
-  # - pyarrow: test_timezone_absent fails because macOS handles timezone lookups differently
-  # - dask: test_series_aggregations_multilevel crashes workers on aarch64-darwin
-  #         pythonImportsCheck also fails because dask.array requires numpy at import time
-  # We override python3 so its .pkgs attribute has these packages with tests disabled
-  python3Fixed = if stdenv.hostPlatform.isDarwin then
-    python3.override {
-      packageOverrides = pfinal: pprev: {
-        pyarrow = pprev.pyarrow.overridePythonAttrs (old: {
-          doCheck = false;
-        });
-        dask = pprev.dask.overridePythonAttrs (old: {
-          doCheck = false;
-          pythonImportsCheck = [];  # dask.array requires numpy which isn't available during check
-        });
-      };
-    }
-  else
-    python3;
+  # Python package overrides:
+  # - asyncer: missing sniffio runtime dependency in nixpkgs (all platforms)
+  # - pyarrow: test_timezone_absent fails on macOS timezone lookups (Darwin only)
+  # - dask: test crashes on aarch64-darwin, pythonImportsCheck needs numpy (Darwin only)
+  python3Fixed = python3.override {
+    packageOverrides = pfinal: pprev: {
+      asyncer = pprev.asyncer.overridePythonAttrs (old: {
+        dependencies = (old.dependencies or []) ++ [ pprev.sniffio ];
+      });
+      gguf = pprev.gguf.overridePythonAttrs (old: {
+        dependencies = (old.dependencies or []) ++ [ pprev.requests ];
+      });
+    } // lib.optionalAttrs stdenv.hostPlatform.isDarwin {
+      pyarrow = pprev.pyarrow.overridePythonAttrs (old: {
+        doCheck = false;
+      });
+      dask = pprev.dask.overridePythonAttrs (old: {
+        doCheck = false;
+        pythonImportsCheck = [];
+      });
+    };
+  };
 
   # Import all the torch-agnostic packages
   # Pass python3 = python3Fixed to ensure pyarrow fix propagates
@@ -90,9 +93,11 @@ let
   # Python with all dependencies
   pythonEnv = python3Fixed.withPackages (ps: with ps; [
     # Core ComfyUI dependencies
+    # Note: torchaudio removed — nixpkgs has 2.10.0 which is incompatible with
+    # torch 2.9.1 (missing torch/csrc/stable/device.h). The runtime manifest
+    # provides torchaudio separately for all platforms (CUDA, MPS, CPU).
     torch
     torchvision
-    torchaudio
     numpy
     scipy
     pillow
