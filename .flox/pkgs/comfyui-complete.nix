@@ -514,8 +514,8 @@ setup_comfyui() {
 
     # Install packages that need to be pip-installed
     $pip_cmd \
-      comfyui-workflow-templates==0.8.15 \
-      comfyui-embedded-docs==0.4.0 \
+      comfyui-workflow-templates==0.9.3 \
+      comfyui-embedded-docs==0.4.3 \
       "safetensors>=0.4.2" \
       "comfyui_manager>=4.0" \
       "matrix-nio>=0.24"  # ComfyUI-Manager matrix sharing feature
@@ -602,122 +602,110 @@ SETUP
       --prefix PYTHONPATH : ${pythonEnv}/${python3Fixed.sitePackages}
 
     # Create the main launcher script
+    # Uses FLOX_ENV_CACHE paths (runtime dir, venv) set up by comfyui-setup
     cat > $out/bin/comfyui-start << 'LAUNCHER'
 #!/usr/bin/env bash
-set -euo pipefail
+#
+# ComfyUI Service Launcher
+# ========================
+# Starts the ComfyUI server process.
+# Used as the service command in the Flox manifest.
+#
+# Required environment variables (set by Flox manifest [vars]):
+#   FLOX_ENV_CACHE             - Path to environment cache
+#   COMFYUI_PORT               - Server listen port
+#   COMFYUI_LISTEN             - Server listen address
+#   COMFYUI_EXTRA_MODEL_PATHS  - Path to extra_model_paths.yaml
+#
+# Optional environment variables:
+#   COMFYUI_DEVICE             - Force device: auto (default), cpu, gpu
+#   COMFYUI_ENABLE_MANAGER     - Enable ComfyUI-Manager: 1 (default) or 0
+#   COMFYUI_BASE_DIR           - Runtime base directory (--base-directory)
+#   COMFYUI_OUTPUT_DIR         - Output directory (--output-directory)
+#   COMFYUI_INPUT_DIR          - Input directory (--input-directory)
+#   COMFYUI_USER_DIR           - User directory (--user-directory)
+#   COMFYUI_TEMP_DIR           - Temp directory (--temp-directory)
+#   COMFYUI_DATABASE_URL       - Database URL (--database-url)
 
-# Configuration with defaults
-WORK_DIR="''${COMFYUI_WORK_DIR:-$HOME/comfyui-work}"
-MODELS_DIR="''${COMFYUI_MODELS_DIR:-$WORK_DIR/models}"
-OUTPUT_DIR="''${COMFYUI_OUTPUT_DIR:-$WORK_DIR/output}"
-INPUT_DIR="''${COMFYUI_INPUT_DIR:-$WORK_DIR/input}"
-USER_DIR="''${COMFYUI_USER_DIR:-$WORK_DIR/user}"
-TEMP_DIR="''${COMFYUI_TEMP_DIR:-$WORK_DIR/temp}"
-VENV_DIR="''${COMFYUI_VENV_DIR:-$WORK_DIR/venv}"
-LISTEN="''${COMFYUI_LISTEN:-127.0.0.1}"
-PORT="''${COMFYUI_PORT:-8188}"
+set -e
 
-# Get script directory to find ComfyUI source
-SCRIPT_DIR="$(cd "$(dirname "''${BASH_SOURCE[0]}")" && pwd)"
-COMFYUI_SOURCE="$(dirname "$SCRIPT_DIR")/share/comfyui"
+# Paths derived from Flox environment
+PYTHON="$FLOX_ENV_CACHE/venv/bin/python"
+MAIN_PY="$FLOX_ENV_CACHE/comfyui-runtime/main.py"
 
-echo "ComfyUI Complete Launcher"
-echo "========================="
-echo ""
-echo "Source:    $COMFYUI_SOURCE"
-echo "Work dir:  $WORK_DIR"
-echo "Models:    $MODELS_DIR"
-echo "Venv:      $VENV_DIR"
-echo "Listen:    $LISTEN:$PORT"
-echo ""
+# Defaults
+COMFYUI_PORT="''${COMFYUI_PORT:-8188}"
+COMFYUI_LISTEN="''${COMFYUI_LISTEN:-127.0.0.1}"
+COMFYUI_DEVICE="''${COMFYUI_DEVICE:-auto}"
+COMFYUI_ENABLE_MANAGER="''${COMFYUI_ENABLE_MANAGER:-1}"
 
-# Create required directories
-mkdir -p "$MODELS_DIR"
-mkdir -p "$OUTPUT_DIR"
-mkdir -p "$INPUT_DIR"
-mkdir -p "$USER_DIR"
-mkdir -p "$TEMP_DIR"
+# Ensure service logs appear immediately
+export PYTHONUNBUFFERED=1
 
-# Create venv with system site-packages if it doesn't exist
-# This allows ComfyUI Manager to pip install additional packages
-# while inheriting all packages from the Nix Python environment
-if [ ! -f "$VENV_DIR/bin/activate" ]; then
-    echo "Creating venv with system site-packages..."
-    python3 -m venv --system-site-packages "$VENV_DIR"
-    echo "Venv created at $VENV_DIR"
-fi
-
-# Activate the venv
-source "$VENV_DIR/bin/activate"
-
-# Create extra_model_paths.yaml if it doesn't exist
-EXTRA_PATHS="$WORK_DIR/extra_model_paths.yaml"
-if [ ! -f "$EXTRA_PATHS" ]; then
-    cat > "$EXTRA_PATHS" << YAML
-comfyui:
-    base_path: $MODELS_DIR
-    checkpoints: checkpoints
-    clip: clip
-    clip_vision: clip_vision
-    configs: configs
-    controlnet: controlnet
-    diffusion_models: diffusion_models
-    diffusers: diffusers
-    embeddings: embeddings
-    gligen: gligen
-    hypernetworks: hypernetworks
-    loras: loras
-    photomaker: photomaker
-    style_models: style_models
-    text_encoders: text_encoders
-    unet: unet
-    upscale_models: upscale_models
-    vae: vae
-    vae_approx: vae_approx
-    ultralytics: ultralytics
-    ultralytics_bbox: ultralytics/bbox
-    ultralytics_segm: ultralytics/segm
-    sams: sams
-    mmdets: mmdets
-    onnx: onnx
-    ipadapter: ipadapter
-    inpaint: inpaint
-YAML
-    echo "Created $EXTRA_PATHS"
-fi
-
-# Detect GPU mode
-GPU_MODE=""
-if python3 -c "
+# Detect GPU / accelerator
+detect_device() {
+  if [ "$COMFYUI_DEVICE" != "auto" ]; then
+    echo "$COMFYUI_DEVICE"
+    return
+  fi
+  "$PYTHON" -c "
 import torch
-if torch.cuda.is_available():
-    exit(0)
-if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-    exit(0)
-exit(1)
-" 2>/dev/null; then
-    echo "GPU detected"
-else
-    echo "No GPU detected, using CPU mode"
-    GPU_MODE="--cpu"
+try:
+    accel = torch.accelerator.current_accelerator()
+    if torch.accelerator.is_available():
+        print(accel)
+    else:
+        print('cpu')
+except AttributeError:
+    # torch < 2.5 — fall back to individual checks
+    if torch.cuda.is_available():
+        print('cuda')
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+        print('mps')
+    else:
+        print('cpu')
+" 2>/dev/null || echo "cpu"
+}
+
+DEVICE=$(detect_device)
+
+# Build argument list
+args=(
+  "$MAIN_PY"
+  --listen "$COMFYUI_LISTEN"
+  --port "$COMFYUI_PORT"
+)
+
+# Directory flags (only added when the env var is set)
+[ -n "''${COMFYUI_BASE_DIR:-}" ]     && args+=(--base-directory "$COMFYUI_BASE_DIR")
+[ -n "''${COMFYUI_OUTPUT_DIR:-}" ]   && args+=(--output-directory "$COMFYUI_OUTPUT_DIR")
+[ -n "''${COMFYUI_INPUT_DIR:-}" ]    && args+=(--input-directory "$COMFYUI_INPUT_DIR")
+[ -n "''${COMFYUI_USER_DIR:-}" ]     && args+=(--user-directory "$COMFYUI_USER_DIR")
+[ -n "''${COMFYUI_TEMP_DIR:-}" ]     && args+=(--temp-directory "$COMFYUI_TEMP_DIR")
+[ -n "''${COMFYUI_DATABASE_URL:-}" ] && args+=(--database-url "$COMFYUI_DATABASE_URL")
+
+# Add extra model paths config if the file exists
+if [ -f "''${COMFYUI_EXTRA_MODEL_PATHS:-}" ]; then
+  args+=(--extra-model-paths-config "$COMFYUI_EXTRA_MODEL_PATHS")
 fi
 
-echo ""
-echo "Starting ComfyUI..."
-echo ""
+# Force CPU mode if detected/requested
+if [ "$DEVICE" = "cpu" ]; then
+  args+=(--cpu)
+fi
 
-# Set COMFYUI_BASE_DIR for custom nodes that need write access
-export COMFYUI_BASE_DIR="$COMFYUI_SOURCE"
+# Enable ComfyUI-Manager unless explicitly disabled
+if [ "$COMFYUI_ENABLE_MANAGER" != "0" ]; then
+  args+=(--enable-manager)
+fi
 
-exec python3 "$COMFYUI_SOURCE/main.py" $GPU_MODE \
-    --listen "$LISTEN" \
-    --port "$PORT" \
-    --output-directory "$OUTPUT_DIR" \
-    --input-directory "$INPUT_DIR" \
-    --user-directory "$USER_DIR" \
-    --temp-directory "$TEMP_DIR" \
-    --extra-model-paths-config "$EXTRA_PATHS" \
-    "$@"
+# Startup log
+echo "ComfyUI starting"
+echo "  Python:  $PYTHON"
+echo "  Device:  $DEVICE"
+echo "  Listen:  $COMFYUI_LISTEN:$COMFYUI_PORT"
+
+exec "$PYTHON" "''${args[@]}"
 LAUNCHER
 
     chmod +x $out/bin/comfyui-start
