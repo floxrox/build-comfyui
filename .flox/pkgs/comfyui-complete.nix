@@ -32,6 +32,11 @@ let
   # ComfyUI version
   comfyuiVersion = "0.15.0";
 
+  # Build versioning — pre-computed in build-meta/*.json before each build
+  buildMeta = builtins.fromJSON (builtins.readFile ../../build-meta/comfyui-complete.json);
+  buildVersion = buildMeta.build_version;
+  packageVersion = "${comfyuiVersion}+${buildMeta.git_rev_short}";
+
   # Python package overrides:
   # - asyncer: missing sniffio runtime dependency in nixpkgs (all platforms)
   # - pyarrow: test_timezone_absent fails on macOS timezone lookups (Darwin only)
@@ -182,7 +187,7 @@ let
 
 in stdenv.mkDerivation rec {
   pname = "comfyui-complete";
-  version = comfyuiVersion;
+  version = packageVersion;
 
   src = comfyuiSrc;
 
@@ -232,16 +237,23 @@ in stdenv.mkDerivation rec {
     rm -rf $out/share/comfyui/user
     rm -rf $out/share/comfyui/models
 
-    # FLOX_BUILD_RUNTIME_VERSION marker
-    # This tracks iterations of the build recipe, not ComfyUI version.
-    # Increment this when changing the build/setup logic.
-    cat > $out/share/comfyui/.flox-build-v15 << 'FLOX_BUILD'
-FLOX_BUILD_RUNTIME_VERSION=15
-description: Add glfw for nodes_glsl.py GLSL shader support
-date: 2026-02-25
-change:
-  ComfyUI v0.15.0's nodes_glsl.py requires both PyOpenGL AND glfw.
-  Added glfw to pythonEnv alongside pyopengl and pyopengl-accelerate.
+    # Build version marker (pre-computed from build-meta/*.json)
+    mkdir -p $out/share/comfyui-complete
+    cat > $out/share/comfyui-complete/flox-build-version-${toString buildVersion} <<'MARKER'
+build-version: ${toString buildVersion}
+upstream-version: ${comfyuiVersion}
+package-version: ${packageVersion}
+git-rev: ${buildMeta.git_rev}
+git-rev-short: ${buildMeta.git_rev_short}
+force-increment: ${toString buildMeta.force_increment}
+changelog: ${buildMeta.changelog}
+MARKER
+
+    # Legacy marker (read by comfyui-setup for startup log)
+    cat > $out/share/comfyui/.flox-build-v${toString buildVersion} << FLOX_BUILD
+FLOX_BUILD_RUNTIME_VERSION=${toString buildVersion}
+version: ${packageVersion}
+git-rev: ${buildMeta.git_rev_short}
 FLOX_BUILD
 
     # Create custom_nodes directory and install all custom nodes
@@ -642,6 +654,46 @@ COMFYUI_ENABLE_MANAGER="''${COMFYUI_ENABLE_MANAGER:-1}"
 # Ensure service logs appear immediately
 export PYTHONUNBUFFERED=1
 
+# Build a selective PYTHONPATH that combines:
+#   - CUDA/MPS torch, torchvision, etc. from the Flox env (GPU-accelerated)
+#   - scipy, numpy from the bundled pythonEnv (clean, single-version)
+#
+# Why: The Flox profile merges ALL installed packages' site-packages at the
+# file level. When two packages depend on different scipy versions (e.g.,
+# torchvision→scipy-1.17.0, torchaudio→scipy-1.16.1), the merged directory
+# contains files from BOTH — creating a broken "Frankenstein" scipy where
+# _propack/ (dir, 1.16.1) coexists with _propack.cpython-313.so (1.17.0).
+#
+# Python searches: PYTHONPATH → venv → Flox env site-packages.
+# By putting clean scipy/numpy in PYTHONPATH (via .flox-pkgs), Python finds
+# the consistent bundled version before reaching the broken merged one.
+if [ -n "''${FLOX_ENV:-}" ]; then
+  for sp_dir in "$FLOX_ENV"/lib/python3*/site-packages; do
+    if [ -d "$sp_dir/torch" ]; then
+      flox_pkgs="$FLOX_ENV_CACHE/.flox-pkgs"
+      # Bundled pythonEnv site-packages path (embedded at build time by Nix).
+      # This has a clean, single-version scipy/numpy with no merge conflicts.
+      bundled_sp="${pythonEnv}/${python3Fixed.sitePackages}"
+      # Always recreate (symlinks are fast; avoids stale cache after flox update)
+      rm -rf "$flox_pkgs"
+      mkdir -p "$flox_pkgs"
+      for item in "$sp_dir"/*; do
+        case "$(basename "$item")" in
+          scipy*|numpy*)
+            # Use bundled pythonEnv version instead of Flox env's merged version
+            bundled="$bundled_sp/$(basename "$item")"
+            [ -e "$bundled" ] && ln -sfn "$bundled" "$flox_pkgs/"
+            continue
+            ;;
+        esac
+        ln -sfn "$item" "$flox_pkgs/"
+      done
+      export PYTHONPATH="$flox_pkgs''${PYTHONPATH:+:$PYTHONPATH}"
+      break
+    fi
+  done
+fi
+
 # Detect GPU / accelerator
 detect_device() {
   if [ "$COMFYUI_DEVICE" != "auto" ]; then
@@ -710,10 +762,12 @@ LAUNCHER
 
     chmod +x $out/bin/comfyui-start
 
-    # Wrap the launcher with Python environment
-    wrapProgram $out/bin/comfyui-start \
-      --prefix PATH : ${pythonEnv}/bin \
-      --prefix PYTHONPATH : ${pythonEnv}/${python3Fixed.sitePackages}
+    # NOTE: comfyui-start is NOT wrapped with pythonEnv.
+    # It uses $FLOX_ENV_CACHE/venv/bin/python directly and sets up
+    # PYTHONPATH at runtime to prioritize Flox env packages (CUDA/MPS torch)
+    # over the bundled CPU torch from pythonEnv.
+    # Wrapping with --prefix PYTHONPATH would put CPU torch first, breaking
+    # GPU detection in environments that provide CUDA torch via manifest.
 
     # Create 'start' script - starts service and opens browser
     cat > $out/bin/start << 'START_SCRIPT'
