@@ -14,6 +14,12 @@
 # Optional environment variables:
 #   COMFYUI_DEVICE             - Force device: auto (default), cpu, gpu
 #   COMFYUI_ENABLE_MANAGER     - Enable ComfyUI-Manager: 1 (default) or 0
+#   COMFYUI_BASE_DIR           - Runtime base directory (--base-directory)
+#   COMFYUI_OUTPUT_DIR         - Output directory (--output-directory)
+#   COMFYUI_INPUT_DIR          - Input directory (--input-directory)
+#   COMFYUI_USER_DIR           - User directory (--user-directory)
+#   COMFYUI_TEMP_DIR           - Temp directory (--temp-directory)
+#   COMFYUI_DATABASE_URL       - Database URL (--database-url)
 
 set -e
 
@@ -63,6 +69,14 @@ args=(
   --listen "$COMFYUI_LISTEN"
   --port "$COMFYUI_PORT"
 )
+
+# Directory flags (only added when the env var is set)
+[ -n "$COMFYUI_BASE_DIR" ]     && args+=(--base-directory "$COMFYUI_BASE_DIR")
+[ -n "$COMFYUI_OUTPUT_DIR" ]   && args+=(--output-directory "$COMFYUI_OUTPUT_DIR")
+[ -n "$COMFYUI_INPUT_DIR" ]    && args+=(--input-directory "$COMFYUI_INPUT_DIR")
+[ -n "$COMFYUI_USER_DIR" ]     && args+=(--user-directory "$COMFYUI_USER_DIR")
+[ -n "$COMFYUI_TEMP_DIR" ]     && args+=(--temp-directory "$COMFYUI_TEMP_DIR")
+[ -n "$COMFYUI_DATABASE_URL" ] && args+=(--database-url "$COMFYUI_DATABASE_URL")
 
 # Add extra model paths config if the file exists
 if [ -f "$COMFYUI_EXTRA_MODEL_PATHS" ]; then

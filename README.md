@@ -107,6 +107,12 @@ The `scripts/` directory also contains shell scripts for environment setup and s
 | `COMFYUI_ENABLE_MANAGER` | `1` | Set to `0` to disable ComfyUI-Manager |
 | `COMFYUI_LISTEN` | `127.0.0.1` | Server listen address |
 | `COMFYUI_PORT` | `8188` | Server listen port |
+| `COMFYUI_BASE_DIR` | *(unset)* | Runtime base directory (`--base-directory`) |
+| `COMFYUI_OUTPUT_DIR` | *(unset)* | Output directory (`--output-directory`) |
+| `COMFYUI_INPUT_DIR` | *(unset)* | Input directory (`--input-directory`) |
+| `COMFYUI_USER_DIR` | *(unset)* | User directory (`--user-directory`) |
+| `COMFYUI_TEMP_DIR` | *(unset)* | Temp directory (`--temp-directory`) |
+| `COMFYUI_DATABASE_URL` | *(unset)* | Database URL (`--database-url`) |
 
 GPU detection uses `torch.accelerator` (PyTorch 2.5+) with fallback to `torch.cuda` / `torch.backends.mps` for older versions.
 
