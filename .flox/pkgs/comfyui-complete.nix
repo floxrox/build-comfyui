@@ -41,6 +41,7 @@ let
   # - asyncer: missing sniffio runtime dependency in nixpkgs (all platforms)
   # - pyarrow: test_timezone_absent fails on macOS timezone lookups (Darwin only)
   # - dask: test crashes on aarch64-darwin, pythonImportsCheck needs numpy (Darwin only)
+  # - imageio: ffmpeg/pyav tests fail in Nix sandbox on macOS (Darwin only)
   python3Fixed = python3.override {
     packageOverrides = pfinal: pprev: {
       asyncer = pprev.asyncer.overridePythonAttrs (old: {
@@ -56,6 +57,9 @@ let
       dask = pprev.dask.overridePythonAttrs (old: {
         doCheck = false;
         pythonImportsCheck = [];
+      });
+      imageio = pprev.imageio.overridePythonAttrs (old: {
+        doCheck = false;
       });
     };
   };
