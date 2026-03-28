@@ -219,8 +219,6 @@ def main():
                 filename=remote,
                 token=hf_token if hf_token else None,
                 local_dir=target_dir,
-                local_dir_use_symlinks=False,
-                resume_download=True,
             )
             final_path = target_dir / local
             safe_move(downloaded_path, final_path)

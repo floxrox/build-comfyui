@@ -1,6 +1,6 @@
 # build-comfyui
 
-ComfyUI 0.15.0 as a complete Nix package for Flox environments. Bundles ComfyUI core, 40+ Python dependencies (torch-agnostic builds), 22 custom nodes, launcher scripts, and model download tools into a single `stdenv.mkDerivation`.
+ComfyUI 0.15.0 as a complete Nix package for Flox environments. Bundles ComfyUI core, 40+ Python dependencies (torch-agnostic builds), 24 custom nodes, launcher scripts, and model download tools into a single `stdenv.mkDerivation`.
 
 This is the **build** repository. A separate runtime Flox environment consumes the output and provides GPU-specific PyTorch (CUDA, MPS, or CPU).
 
@@ -20,7 +20,7 @@ flox build comfyui-complete
 # 4. Verify
 readlink -f result-comfyui-complete    # Nix store path
 ls result-comfyui-complete/bin/        # Scripts
-ls result-comfyui-complete/share/comfyui/custom_nodes/  # 22 nodes
+ls result-comfyui-complete/share/comfyui/custom_nodes/  # 24 nodes
 ```
 
 ## Build Output
@@ -31,18 +31,21 @@ result-comfyui-complete/
     comfyui-setup              # Runtime setup (venv, pip deps, runtime dir)
     comfyui-start              # Service launcher (GPU detection, PYTHONPATH)
     start                      # Start service + open browser
-    comfyui-download-flux.py   # FLUX.1-dev model downloader
-    comfyui-download-sd15.py   # SD 1.5 model downloader
-    comfyui-download-sd35.py   # SD 3.5 Large model downloader
-    comfyui-download-sdxl.py   # SDXL 1.0 model downloader
+    comfyui-download-flux.py       # FLUX.1-dev model downloader
+    comfyui-download-sd15.py       # SD 1.5 model downloader
+    comfyui-download-sd35.py       # SD 3.5 Large model downloader
+    comfyui-download-sdxl.py       # SDXL 1.0 model downloader
+    comfyui-download-wan22.py      # Wan 2.2 video model downloader
+    comfyui-download-framepack.py  # FramePack video model downloader
+    comfyui-download-hunyuan15.py  # HunyuanVideo 1.5 model downloader
   share/comfyui/
     main.py                    # ComfyUI entry point
     nodes.py                   # Node loader (patched for broken symlinks)
     comfy/                     # Core library
     comfy_extras/              # Built-in extra nodes
     web/                       # Frontend + pre-copied JS extensions
-    custom_nodes/              # 22 bundled custom nodes
-    workflows/                 # Bundled example workflows (FLUX, SD15, SD35, SDXL, API)
+    custom_nodes/              # 24 bundled custom nodes
+    workflows/                 # Bundled example workflows (FLUX, SD15, SD35, SDXL, WAN22, FRAMEPACK, HUNYUAN15, API)
   share/comfyui-complete/
     flox-build-version-*       # Build version marker
 ```
@@ -55,8 +58,8 @@ result-comfyui-complete/
 
 - **ComfyUI 0.15.0 source** fetched from GitHub at a pinned tag
 - **pythonEnv** with 40+ Python packages (torch, torchvision, numpy, scipy, transformers, diffusers, etc.)
-- **22 custom nodes** from 5 sub-packages (Impact Pack, community nodes, ControlNet-Aux, video generation, Impact Subpack)
-- **7 scripts** for setup, launching, and model downloads
+- **24 custom nodes** from 5 sub-packages (Impact Pack, community nodes, ControlNet-Aux, video generation, Impact Subpack)
+- **10 scripts** for setup, launching, and model downloads
 - **Bundled workflows** for common model types
 
 This is NOT a Python package — there is no `site-packages` in the output. The pythonEnv is used only to wrap `comfyui-setup` (via `wrapProgram --prefix PATH`). The main launcher (`comfyui-start`) is deliberately NOT wrapped — see [comfyui-start is NOT Wrapped](#comfyui-start-is-not-wrapped).
@@ -122,6 +125,9 @@ Bundled custom nodes are copied (not symlinked) to `~/comfyui-work/custom_nodes/
 | `comfyui-download-sd15.py` | Downloads Stable Diffusion 1.5 models (~4.3 GB) |
 | `comfyui-download-sd35.py` | Downloads Stable Diffusion 3.5 Large models (~23 GB, HF token required) |
 | `comfyui-download-sdxl.py` | Downloads Stable Diffusion XL 1.0 models (~6.9 GB) |
+| `comfyui-download-wan22.py` | Downloads Wan 2.2 video models (~17-30 GB, variants: ti2v-5b, i2v-14b) |
+| `comfyui-download-framepack.py` | Downloads FramePack I2V models (~24 GB) |
+| `comfyui-download-hunyuan15.py` | Downloads HunyuanVideo 1.5 models (~18-26 GB, variants: i2v, t2v) |
 
 ### comfyui-setup
 
@@ -181,6 +187,8 @@ Convenience launcher for interactive use:
 
 ## Model Download Scripts
 
+### Image Generation
+
 | Command | Model | Size | HF Token |
 |---------|-------|------|----------|
 | `comfyui-download-sd15.py` | Stable Diffusion 1.5 | ~4.3 GB | Not required |
@@ -188,7 +196,19 @@ Convenience launcher for interactive use:
 | `comfyui-download-sd35.py` | Stable Diffusion 3.5 Large | ~23 GB | **Required** (gated) |
 | `comfyui-download-flux.py` | FLUX.1-dev | ~22 GB | **Required** (gated) |
 
-Each script supports `--help`, `--dry-run`, and `--models-dir` flags. Model files are placed in the correct subdirectories (checkpoints/, clip/, unet/, vae/) automatically.
+### Video Generation
+
+| Command | Model | Size | HF Token | VRAM |
+|---------|-------|------|----------|------|
+| `comfyui-download-wan22.py` | Wan 2.2 TI2V-5B (default) | ~17 GB | Not required | 16+ GB |
+| `comfyui-download-wan22.py --variant i2v-14b` | Wan 2.2 I2V-14B MoE (FP8) | ~20 GB | Not required | 24+ GB |
+| `comfyui-download-wan22.py --variant all` | Wan 2.2 All Variants | ~30 GB | Not required | 24+ GB |
+| `comfyui-download-framepack.py` | FramePack I2V (HunyuanVideo, FP8) | ~24 GB | Not required | 24+ GB |
+| `comfyui-download-hunyuan15.py` | HunyuanVideo 1.5 I2V (default) | ~18 GB | Not required | 24+ GB |
+| `comfyui-download-hunyuan15.py --variant t2v` | HunyuanVideo 1.5 T2V | ~17 GB | Not required | 24+ GB |
+| `comfyui-download-hunyuan15.py --variant all` | HunyuanVideo 1.5 All | ~26 GB | Not required | 24+ GB |
+
+Each script supports `--help`, `--dry-run`, and `--models-dir` flags. Model files are placed in the correct subdirectories (checkpoints/, clip/, unet/, vae/, diffusion_models/, clip_vision/) automatically. Video scripts also support `--variant` for downloading specific model variants. Files shared between models (e.g., text encoders, VAE) are automatically skipped if already present.
 
 ```bash
 export HF_TOKEN=hf_your_token_here
@@ -320,7 +340,7 @@ changelog: Fix scipy Frankenstein merge: symlink bundled pythonEnv scipy/numpy i
 | `comfyui-impact-subpack` | `comfyui-impact-subpack.nix` | Impact Subpack (ltdrdata, v1.3.4) |
 | `comfyui-custom-nodes` | `comfyui-custom-nodes.nix` | 14 community nodes + 1 vendored (SafeCLIP-SDXL) |
 | `comfyui-controlnet-aux` | `comfyui-controlnet-aux.nix` | ControlNet preprocessors (Fannovel16) |
-| `comfyui-videogen` | `comfyui-videogen.nix` | Video generation nodes (4 nodes) |
+| `comfyui-videogen` | `comfyui-videogen.nix` | Video generation nodes (6 nodes) |
 
 ### Torch-Agnostic ML (13)
 
@@ -356,7 +376,7 @@ changelog: Fix scipy Frankenstein merge: symlink bundled pythonEnv scipy/numpy i
 
 ## Bundled Custom Nodes
 
-22 custom nodes across 5 node packages:
+24 custom nodes across 5 node packages:
 
 ### Impact Pack (`comfyui-plugins.nix`)
 
@@ -404,6 +424,8 @@ changelog: Fix scipy Frankenstein merge: symlink bundled pythonEnv scipy/numpy i
 | ComfyUI-VideoHelperSuite | Kosinkadink/ComfyUI-VideoHelperSuite | Video loading, combining, previewing |
 | ComfyUI-LTXVideo | Lightricks/ComfyUI-LTXVideo | Lightricks LTX-Video generation |
 | ComfyUI-WanVideoWrapper | kijai/ComfyUI-WanVideoWrapper | Wan Video text/image-to-video |
+| ComfyUI-FramePackWrapper | kijai/ComfyUI-FramePackWrapper | FramePack video generation (HunyuanVideo backbone) |
+| ComfyUI-HunyuanVideoWrapper | kijai/ComfyUI-HunyuanVideoWrapper | HunyuanVideo text/image-to-video |
 
 ## Patches
 
@@ -483,7 +505,10 @@ build-comfyui/
 │   ├── comfyui-download-flux.py
 │   ├── comfyui-download-sd15.py
 │   ├── comfyui-download-sd35.py
-│   └── comfyui-download-sdxl.py
+│   ├── comfyui-download-sdxl.py
+│   ├── comfyui-download-wan22.py
+│   ├── comfyui-download-framepack.py
+│   └── comfyui-download-hunyuan15.py
 ├── sources/
 │   ├── ComfyUI-SafeCLIP-SDXL/     # Vendored custom node
 │   ├── workflows/                  # Bundled workflow files

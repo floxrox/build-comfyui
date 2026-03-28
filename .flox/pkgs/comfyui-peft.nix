@@ -4,8 +4,8 @@
 # Built WITHOUT torch/transformers/accelerate dependencies.
 # Runtime environment provides these, allowing CUDA-enabled versions.
 #
-# Used by: WanVideoWrapper, ComfyUI-nunchaku
-# Version: 0.17.1 (matches nixpkgs)
+# Used by: WanVideoWrapper, FramePackWrapper, ComfyUI-nunchaku
+# Version: 0.18.1 (updated for transformers 5.x compat — HybridCache import is conditional)
 
 { lib
 , python3
@@ -14,14 +14,14 @@
 
 python3.pkgs.buildPythonPackage rec {
   pname = "comfyui-peft";
-  version = "0.17.1";
+  version = "0.18.1";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "huggingface";
     repo = "peft";
     tag = "v${version}";
-    hash = "sha256-xtpxwbKf7ZaUYblGdwtPZE09qrlBQTMm5oryUJwa6AA=";
+    hash = "sha256-qlM8yEN/CJZbSAGNCltS4JQSzstVXRVqu47qZbLPVNc=";
   };
 
   build-system = with python3.pkgs; [

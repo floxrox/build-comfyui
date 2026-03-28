@@ -324,9 +324,12 @@ RUNTIME_VERSION="1.2.0"
 # Allow user to force reset: COMFYUI_RESET=1 flox activate
 if [ "''${COMFYUI_RESET:-0}" = "1" ]; then
   if [ -n "$FLOX_ENV_CACHE" ] && [ -d "$FLOX_ENV_CACHE" ]; then
-    echo "COMFYUI_RESET=1 detected - clearing environment cache..."
+    echo "COMFYUI_RESET=1 detected - clearing $FLOX_ENV_CACHE ..."
     rm -rf "$FLOX_ENV_CACHE"
+    mkdir -p "$FLOX_ENV_CACHE"
     echo "Cache cleared. Environment will be re-bootstrapped."
+  else
+    echo "COMFYUI_RESET=1 detected but cache dir does not exist, skipping."
   fi
 fi
 
@@ -649,6 +652,14 @@ set -e
 PYTHON="$FLOX_ENV_CACHE/venv/bin/python"
 MAIN_PY="$FLOX_ENV_CACHE/comfyui-runtime/main.py"
 
+# Guard: venv must exist before starting (comfyui-setup creates it)
+if [ ! -f "$PYTHON" ]; then
+  echo "ERROR: venv not found at $PYTHON"
+  echo "  The venv may have been removed by COMFYUI_RESET or is not yet created."
+  echo "  Run 'comfyui-setup' first, then restart the service."
+  exit 1
+fi
+
 # Defaults
 COMFYUI_PORT="''${COMFYUI_PORT:-8188}"
 COMFYUI_LISTEN="''${COMFYUI_LISTEN:-127.0.0.1}"
@@ -850,7 +861,7 @@ START_SCRIPT
       - Impact Pack and Impact Subpack
       - Community custom nodes (rgthree, WAS, efficiency, essentials, etc.)
       - ControlNet-Aux preprocessors
-      - Video generation nodes (AnimateDiff, VideoHelperSuite, LTXVideo)
+      - Video generation nodes (AnimateDiff, VideoHelperSuite, LTXVideo, WanVideo, FramePack, HunyuanVideo)
       - Default workflows
 
       This package avoids venv isolation issues by bundling everything
