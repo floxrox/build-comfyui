@@ -13,6 +13,7 @@
         # - pyarrow: test_timezone_absent fails because macOS handles timezone lookups differently
         # - dask: test_series_aggregations_multilevel crashes workers on aarch64-darwin
         #         pythonImportsCheck also fails because dask.array requires numpy at import time
+        # - imageio: ffmpeg/pyav tests fail in sandbox (can't probe media, subprocess timeouts)
         # We override the python interpreters so their .pkgs attribute has the fix
         pythonDarwinFix = pfinal: pprev: {
           pyarrow = pprev.pyarrow.overridePythonAttrs (old: {
@@ -21,6 +22,9 @@
           dask = pprev.dask.overridePythonAttrs (old: {
             doCheck = false;
             pythonImportsCheck = [];  # dask.array requires numpy which isn't available during check
+          });
+          imageio = pprev.imageio.overridePythonAttrs (old: {
+            doCheck = false;
           });
         };
 

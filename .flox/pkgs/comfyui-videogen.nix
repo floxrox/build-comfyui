@@ -9,6 +9,8 @@
 #   - ComfyUI-VideoHelperSuite: Video loading, combining, previewing
 #   - ComfyUI-LTXVideo: Lightricks LTX-Video generation
 #   - ComfyUI-WanVideoWrapper: Wan Video (text/image-to-video)
+#   - ComfyUI-FramePackWrapper: FramePack video generation (HunyuanVideo backbone)
+#   - ComfyUI-HunyuanVideoWrapper: HunyuanVideo text/image-to-video
 #
 # Dependencies provided by:
 #   - comfyui-extras: peft, facexlib, pyloudnorm, imageio-ffmpeg, etc.
@@ -48,13 +50,27 @@ let
       rev = "d00abe52d720a5845343ad0dd2927275bad399e7";
       hash = "sha256-JFQlebtw9dVFmWdiFbiDVbWhPdXkXymcicVn4/kUxrA=";
     };
+
+    ComfyUI-FramePackWrapper = fetchFromGitHub {
+      owner = "kijai";
+      repo = "ComfyUI-FramePackWrapper";
+      rev = "a0eeaa6993e835e158062cfa1c436a19ab332b2c";
+      hash = "sha256-m7MeaWcqFAJCQJdsV1BXRh/zLeqTL158O62MAoWaRic=";
+    };
+
+    ComfyUI-HunyuanVideoWrapper = fetchFromGitHub {
+      owner = "kijai";
+      repo = "ComfyUI-HunyuanVideoWrapper";
+      rev = "fcbd6729a9b0b8ff6037c598bbada4a6bdc6d967";
+      hash = "sha256-ZQU4i59pIUrOvEqo/FU913g8uNzNyxUzy4vqnD1B4pA=";
+    };
   };
 
   nodeNames = builtins.attrNames nodeSources;
 
 in stdenv.mkDerivation rec {
   pname = "comfyui-videogen";
-  version = "0.14.2";
+  version = "0.15.0";
 
   dontUnpack = true;
   dontBuild = true;
@@ -85,6 +101,8 @@ in stdenv.mkDerivation rec {
       - ComfyUI-VideoHelperSuite: Video loading, combining, and previewing
       - ComfyUI-LTXVideo: Lightricks LTX-Video generation
       - ComfyUI-WanVideoWrapper: Wan Video text/image-to-video generation
+      - ComfyUI-FramePackWrapper: FramePack video generation (HunyuanVideo backbone)
+      - ComfyUI-HunyuanVideoWrapper: HunyuanVideo text/image-to-video generation
 
       Python dependencies (peft, facexlib, pyloudnorm, imageio-ffmpeg, diffusers,
       transformers, av) are provided by comfyui-extras and the runtime manifest.

@@ -23,8 +23,9 @@ python3.pkgs.buildPythonPackage rec {
     scikit-image
   ];
 
-  # Skip imports check - opencv dependency issues
-  # pythonImportsCheck = [ "color_matcher" ];
+  # Wheel metadata lists ddt (test framework) and docutils (docs) as deps;
+  # they are not actual runtime requirements.
+  dontCheckRuntimeDeps = true;
 
   meta = with lib; {
     description = "Color matching algorithms for images";

@@ -1,0 +1,7 @@
+{
+  "build_version": 53,
+  "force_increment": 0,
+  "git_rev": "f04d7444c1a56670c95609ea79e5659fea686f70",
+  "git_rev_short": "f04d744",
+  "changelog": "Fix scipy Frankenstein merge: symlink bundled pythonEnv scipy/numpy in PYTHONPATH."
+}

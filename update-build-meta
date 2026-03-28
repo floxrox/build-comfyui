@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+#
+# update-build-meta — Update build-meta/*.json with current git state
+#
+# Usage:
+#   ./update-build-meta                          # update all, keep existing changelogs
+#   ./update-build-meta "Fixed the thing"        # update all with new changelog
+#   ./update-build-meta --hierarchical-version   # update build-meta and commit
+#
+# Run AFTER committing code changes, BEFORE running flox build.
+# The git_rev in the JSON will point to the most recent code commit.
+#
+# Workflow:
+#   1. Make code changes, commit them
+#   2. ./update-build-meta "what changed"
+#   3. git add build-meta/ && git commit -m "build-meta: update"
+#   4. flox build <package>
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUILD_META_DIR="$REPO_ROOT/build-meta"
+
+if [ ! -d "$BUILD_META_DIR" ]; then
+  echo "ERROR: No build-meta/ directory found at $REPO_ROOT" >&2
+  exit 1
+fi
+
+if ! git -C "$REPO_ROOT" rev-parse --is-inside-work-tree &>/dev/null; then
+  echo "ERROR: Not a git repository: $REPO_ROOT" >&2
+  exit 1
+fi
+
+# Capture current git state
+GIT_REV="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+GIT_REV_SHORT="$(git -C "$REPO_ROOT" rev-parse --short HEAD)"
+COMMIT_COUNT="$(git -C "$REPO_ROOT" rev-list --count HEAD)"
+
+# Optional changelog from CLI arg
+CHANGELOG="${1:-}"
+
+echo "Git state:"
+echo "  rev:        $GIT_REV"
+echo "  short:      $GIT_REV_SHORT"
+echo "  commits:    $COMMIT_COUNT"
+echo ""
+
+updated=0
+for json_file in "$BUILD_META_DIR"/*.json; do
+  [ -f "$json_file" ] || continue
+  pkg_name="$(basename "$json_file" .json)"
+
+  # Read existing values
+  old_force_increment=$(python3 -c "import json; print(json.load(open('$json_file')).get('force_increment', 0))" 2>/dev/null || echo 0)
+  old_changelog=$(python3 -c "import json; print(json.load(open('$json_file')).get('changelog', ''))" 2>/dev/null || echo "")
+
+  # Compute build_version = commit count + force_increment
+  build_version=$((COMMIT_COUNT + old_force_increment))
+
+  # Use new changelog if provided, else keep existing
+  final_changelog="${CHANGELOG:-$old_changelog}"
+
+  # Write updated JSON
+  python3 -c "
+import json
+data = {
+    'build_version': $build_version,
+    'force_increment': $old_force_increment,
+    'git_rev': '$GIT_REV',
+    'git_rev_short': '$GIT_REV_SHORT',
+    'changelog': '''$final_changelog'''
+}
+with open('$json_file', 'w') as f:
+    json.dump(data, f, indent=2)
+    f.write('\n')
+"
+
+  echo "Updated $pkg_name:"
+  echo "  build_version: $build_version"
+  echo "  version:       <upstream>+$GIT_REV_SHORT"
+  [ -n "$final_changelog" ] && echo "  changelog:     $final_changelog"
+  echo ""
+  updated=$((updated + 1))
+done
+
+if [ "$updated" -eq 0 ]; then
+  echo "No JSON files found in $BUILD_META_DIR" >&2
+  exit 1
+fi
+
+echo "Done. Next steps:"
+echo "  git add build-meta/ && git commit -m \"build-meta: update for build\""
+echo "  flox build <package>"

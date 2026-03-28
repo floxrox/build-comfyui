@@ -30,27 +30,39 @@
 
 let
   # ComfyUI version
-  comfyuiVersion = "0.14.2";
+  comfyuiVersion = "0.15.0";
 
-  # Fix test failures on Darwin
-  # - pyarrow: test_timezone_absent fails because macOS handles timezone lookups differently
-  # - dask: test_series_aggregations_multilevel crashes workers on aarch64-darwin
-  #         pythonImportsCheck also fails because dask.array requires numpy at import time
-  # We override python3 so its .pkgs attribute has these packages with tests disabled
-  python3Fixed = if stdenv.hostPlatform.isDarwin then
-    python3.override {
-      packageOverrides = pfinal: pprev: {
-        pyarrow = pprev.pyarrow.overridePythonAttrs (old: {
-          doCheck = false;
-        });
-        dask = pprev.dask.overridePythonAttrs (old: {
-          doCheck = false;
-          pythonImportsCheck = [];  # dask.array requires numpy which isn't available during check
-        });
-      };
-    }
-  else
-    python3;
+  # Build versioning — pre-computed in build-meta/*.json before each build
+  buildMeta = builtins.fromJSON (builtins.readFile ../../build-meta/comfyui-complete.json);
+  buildVersion = buildMeta.build_version;
+  packageVersion = "${comfyuiVersion}+${buildMeta.git_rev_short}";
+
+  # Python package overrides:
+  # - asyncer: missing sniffio runtime dependency in nixpkgs (all platforms)
+  # - pyarrow: test_timezone_absent fails on macOS timezone lookups (Darwin only)
+  # - dask: test crashes on aarch64-darwin, pythonImportsCheck needs numpy (Darwin only)
+  # - imageio: ffmpeg/pyav tests fail in Nix sandbox on macOS (Darwin only)
+  python3Fixed = python3.override {
+    packageOverrides = pfinal: pprev: {
+      asyncer = pprev.asyncer.overridePythonAttrs (old: {
+        dependencies = (old.dependencies or []) ++ [ pprev.sniffio ];
+      });
+      gguf = pprev.gguf.overridePythonAttrs (old: {
+        dependencies = (old.dependencies or []) ++ [ pprev.requests ];
+      });
+    } // lib.optionalAttrs stdenv.hostPlatform.isDarwin {
+      pyarrow = pprev.pyarrow.overridePythonAttrs (old: {
+        doCheck = false;
+      });
+      dask = pprev.dask.overridePythonAttrs (old: {
+        doCheck = false;
+        pythonImportsCheck = [];
+      });
+      imageio = pprev.imageio.overridePythonAttrs (old: {
+        doCheck = false;
+      });
+    };
+  };
 
   # Import all the torch-agnostic packages
   # Pass python3 = python3Fixed to ensure pyarrow fix propagates
@@ -90,9 +102,11 @@ let
   # Python with all dependencies
   pythonEnv = python3Fixed.withPackages (ps: with ps; [
     # Core ComfyUI dependencies
+    # Note: torchaudio removed — nixpkgs has 2.10.0 which is incompatible with
+    # torch 2.9.1 (missing torch/csrc/stable/device.h). The runtime manifest
+    # provides torchaudio separately for all platforms (CUDA, MPS, CPU).
     torch
     torchvision
-    torchaudio
     numpy
     scipy
     pillow
@@ -135,6 +149,9 @@ let
     hydra-core    # Required by sam2
     iopath        # Required by sam2
     dill          # Required by Impact-Subpack
+    pyopengl             # Required by nodes_glsl.py (v0.15.0+)
+    pyopengl-accelerate  # Required by nodes_glsl.py (v0.15.0+)
+    glfw                 # Required by nodes_glsl.py (v0.15.0+)
   ] ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [
     albumentations
   ] ++ [
@@ -169,12 +186,12 @@ let
     owner = "comfyanonymous";
     repo = "ComfyUI";
     rev = "v${comfyuiVersion}";
-    hash = "sha256-rrkVEnoWp0BBFZS4fMHo72aYZSxy0I3O8C9DMKXsr88=";
+    hash = "sha256-IENMvLEmLuKEjw+yIsIbXorF3BmIqYyV+FGxgbccLz8=";
   };
 
 in stdenv.mkDerivation rec {
   pname = "comfyui-complete";
-  version = comfyuiVersion;
+  version = packageVersion;
 
   src = comfyuiSrc;
 
@@ -224,20 +241,23 @@ in stdenv.mkDerivation rec {
     rm -rf $out/share/comfyui/user
     rm -rf $out/share/comfyui/models
 
-    # FLOX_BUILD_RUNTIME_VERSION marker
-    # This tracks iterations of the build recipe, not ComfyUI version.
-    # Increment this when changing the build/setup logic.
-    cat > $out/share/comfyui/.flox-build-v13 << 'FLOX_BUILD'
-FLOX_BUILD_RUNTIME_VERSION=13
-description: Fix Python version mismatch in venv creation
-date: 2026-02-25
-change:
-  Fix venv being created with wrong Python version. The uv tool has its
-  own Python discovery mechanism that ignores the wrapper's PATH. Changed
-  'uv venv --python python3' to 'uv venv --python "$python_path"' where
-  python_path is the explicit path from 'command -v python3'. This ensures
-  the venv uses the bundled Python from pythonEnv, not system Python.
-  Also added diagnostic output showing which Python is being used.
+    # Build version marker (pre-computed from build-meta/*.json)
+    mkdir -p $out/share/comfyui-complete
+    cat > $out/share/comfyui-complete/flox-build-version-${toString buildVersion} <<'MARKER'
+build-version: ${toString buildVersion}
+upstream-version: ${comfyuiVersion}
+package-version: ${packageVersion}
+git-rev: ${buildMeta.git_rev}
+git-rev-short: ${buildMeta.git_rev_short}
+force-increment: ${toString buildMeta.force_increment}
+changelog: ${buildMeta.changelog}
+MARKER
+
+    # Legacy marker (read by comfyui-setup for startup log)
+    cat > $out/share/comfyui/.flox-build-v${toString buildVersion} << FLOX_BUILD
+FLOX_BUILD_RUNTIME_VERSION=${toString buildVersion}
+version: ${packageVersion}
+git-rev: ${buildMeta.git_rev_short}
 FLOX_BUILD
 
     # Create custom_nodes directory and install all custom nodes
@@ -304,9 +324,12 @@ RUNTIME_VERSION="1.2.0"
 # Allow user to force reset: COMFYUI_RESET=1 flox activate
 if [ "''${COMFYUI_RESET:-0}" = "1" ]; then
   if [ -n "$FLOX_ENV_CACHE" ] && [ -d "$FLOX_ENV_CACHE" ]; then
-    echo "COMFYUI_RESET=1 detected - clearing environment cache..."
+    echo "COMFYUI_RESET=1 detected - clearing $FLOX_ENV_CACHE ..."
     rm -rf "$FLOX_ENV_CACHE"
+    mkdir -p "$FLOX_ENV_CACHE"
     echo "Cache cleared. Environment will be re-bootstrapped."
+  else
+    echo "COMFYUI_RESET=1 detected but cache dir does not exist, skipping."
   fi
 fi
 
@@ -510,8 +533,8 @@ setup_comfyui() {
 
     # Install packages that need to be pip-installed
     $pip_cmd \
-      comfyui-workflow-templates==0.8.15 \
-      comfyui-embedded-docs==0.4.0 \
+      comfyui-workflow-templates==0.9.3 \
+      comfyui-embedded-docs==0.4.3 \
       "safetensors>=0.4.2" \
       "comfyui_manager>=4.0" \
       "matrix-nio>=0.24"  # ComfyUI-Manager matrix sharing feature
@@ -598,130 +621,168 @@ SETUP
       --prefix PYTHONPATH : ${pythonEnv}/${python3Fixed.sitePackages}
 
     # Create the main launcher script
+    # Uses FLOX_ENV_CACHE paths (runtime dir, venv) set up by comfyui-setup
     cat > $out/bin/comfyui-start << 'LAUNCHER'
 #!/usr/bin/env bash
-set -euo pipefail
+#
+# ComfyUI Service Launcher
+# ========================
+# Starts the ComfyUI server process.
+# Used as the service command in the Flox manifest.
+#
+# Required environment variables (set by Flox manifest [vars]):
+#   FLOX_ENV_CACHE             - Path to environment cache
+#   COMFYUI_PORT               - Server listen port
+#   COMFYUI_LISTEN             - Server listen address
+#   COMFYUI_EXTRA_MODEL_PATHS  - Path to extra_model_paths.yaml
+#
+# Optional environment variables:
+#   COMFYUI_DEVICE             - Force device: auto (default), cpu, gpu
+#   COMFYUI_ENABLE_MANAGER     - Enable ComfyUI-Manager: 1 (default) or 0
+#   COMFYUI_BASE_DIR           - Runtime base directory (--base-directory)
+#   COMFYUI_OUTPUT_DIR         - Output directory (--output-directory)
+#   COMFYUI_INPUT_DIR          - Input directory (--input-directory)
+#   COMFYUI_USER_DIR           - User directory (--user-directory)
+#   COMFYUI_TEMP_DIR           - Temp directory (--temp-directory)
+#   COMFYUI_DATABASE_URL       - Database URL (--database-url)
 
-# Configuration with defaults
-WORK_DIR="''${COMFYUI_WORK_DIR:-$HOME/comfyui-work}"
-MODELS_DIR="''${COMFYUI_MODELS_DIR:-$WORK_DIR/models}"
-OUTPUT_DIR="''${COMFYUI_OUTPUT_DIR:-$WORK_DIR/output}"
-INPUT_DIR="''${COMFYUI_INPUT_DIR:-$WORK_DIR/input}"
-USER_DIR="''${COMFYUI_USER_DIR:-$WORK_DIR/user}"
-TEMP_DIR="''${COMFYUI_TEMP_DIR:-$WORK_DIR/temp}"
-VENV_DIR="''${COMFYUI_VENV_DIR:-$WORK_DIR/venv}"
-LISTEN="''${COMFYUI_LISTEN:-127.0.0.1}"
-PORT="''${COMFYUI_PORT:-8188}"
+set -e
 
-# Get script directory to find ComfyUI source
-SCRIPT_DIR="$(cd "$(dirname "''${BASH_SOURCE[0]}")" && pwd)"
-COMFYUI_SOURCE="$(dirname "$SCRIPT_DIR")/share/comfyui"
+# Paths derived from Flox environment
+PYTHON="$FLOX_ENV_CACHE/venv/bin/python"
+MAIN_PY="$FLOX_ENV_CACHE/comfyui-runtime/main.py"
 
-echo "ComfyUI Complete Launcher"
-echo "========================="
-echo ""
-echo "Source:    $COMFYUI_SOURCE"
-echo "Work dir:  $WORK_DIR"
-echo "Models:    $MODELS_DIR"
-echo "Venv:      $VENV_DIR"
-echo "Listen:    $LISTEN:$PORT"
-echo ""
-
-# Create required directories
-mkdir -p "$MODELS_DIR"
-mkdir -p "$OUTPUT_DIR"
-mkdir -p "$INPUT_DIR"
-mkdir -p "$USER_DIR"
-mkdir -p "$TEMP_DIR"
-
-# Create venv with system site-packages if it doesn't exist
-# This allows ComfyUI Manager to pip install additional packages
-# while inheriting all packages from the Nix Python environment
-if [ ! -f "$VENV_DIR/bin/activate" ]; then
-    echo "Creating venv with system site-packages..."
-    python3 -m venv --system-site-packages "$VENV_DIR"
-    echo "Venv created at $VENV_DIR"
+# Guard: venv must exist before starting (comfyui-setup creates it)
+if [ ! -f "$PYTHON" ]; then
+  echo "ERROR: venv not found at $PYTHON"
+  echo "  The venv may have been removed by COMFYUI_RESET or is not yet created."
+  echo "  Run 'comfyui-setup' first, then restart the service."
+  exit 1
 fi
 
-# Activate the venv
-source "$VENV_DIR/bin/activate"
+# Defaults
+COMFYUI_PORT="''${COMFYUI_PORT:-8188}"
+COMFYUI_LISTEN="''${COMFYUI_LISTEN:-127.0.0.1}"
+COMFYUI_DEVICE="''${COMFYUI_DEVICE:-auto}"
+COMFYUI_ENABLE_MANAGER="''${COMFYUI_ENABLE_MANAGER:-1}"
 
-# Create extra_model_paths.yaml if it doesn't exist
-EXTRA_PATHS="$WORK_DIR/extra_model_paths.yaml"
-if [ ! -f "$EXTRA_PATHS" ]; then
-    cat > "$EXTRA_PATHS" << YAML
-comfyui:
-    base_path: $MODELS_DIR
-    checkpoints: checkpoints
-    clip: clip
-    clip_vision: clip_vision
-    configs: configs
-    controlnet: controlnet
-    diffusion_models: diffusion_models
-    diffusers: diffusers
-    embeddings: embeddings
-    gligen: gligen
-    hypernetworks: hypernetworks
-    loras: loras
-    photomaker: photomaker
-    style_models: style_models
-    text_encoders: text_encoders
-    unet: unet
-    upscale_models: upscale_models
-    vae: vae
-    vae_approx: vae_approx
-    ultralytics: ultralytics
-    ultralytics_bbox: ultralytics/bbox
-    ultralytics_segm: ultralytics/segm
-    sams: sams
-    mmdets: mmdets
-    onnx: onnx
-    ipadapter: ipadapter
-    inpaint: inpaint
-YAML
-    echo "Created $EXTRA_PATHS"
+# Ensure service logs appear immediately
+export PYTHONUNBUFFERED=1
+
+# Build a selective PYTHONPATH that combines:
+#   - CUDA/MPS torch, torchvision, etc. from the Flox env (GPU-accelerated)
+#   - scipy, numpy from the bundled pythonEnv (clean, single-version)
+#
+# Why: The Flox profile merges ALL installed packages' site-packages at the
+# file level. When two packages depend on different scipy versions (e.g.,
+# torchvision→scipy-1.17.0, torchaudio→scipy-1.16.1), the merged directory
+# contains files from BOTH — creating a broken "Frankenstein" scipy where
+# _propack/ (dir, 1.16.1) coexists with _propack.cpython-313.so (1.17.0).
+#
+# Python searches: PYTHONPATH → venv → Flox env site-packages.
+# By putting clean scipy/numpy in PYTHONPATH (via .flox-pkgs), Python finds
+# the consistent bundled version before reaching the broken merged one.
+if [ -n "''${FLOX_ENV:-}" ]; then
+  for sp_dir in "$FLOX_ENV"/lib/python3*/site-packages; do
+    if [ -d "$sp_dir/torch" ]; then
+      flox_pkgs="$FLOX_ENV_CACHE/.flox-pkgs"
+      # Bundled pythonEnv site-packages path (embedded at build time by Nix).
+      # This has a clean, single-version scipy/numpy with no merge conflicts.
+      bundled_sp="${pythonEnv}/${python3Fixed.sitePackages}"
+      # Always recreate (symlinks are fast; avoids stale cache after flox update)
+      rm -rf "$flox_pkgs"
+      mkdir -p "$flox_pkgs"
+      for item in "$sp_dir"/*; do
+        case "$(basename "$item")" in
+          scipy*|numpy*)
+            # Use bundled pythonEnv version instead of Flox env's merged version
+            bundled="$bundled_sp/$(basename "$item")"
+            [ -e "$bundled" ] && ln -sfn "$bundled" "$flox_pkgs/"
+            continue
+            ;;
+        esac
+        ln -sfn "$item" "$flox_pkgs/"
+      done
+      export PYTHONPATH="$flox_pkgs''${PYTHONPATH:+:$PYTHONPATH}"
+      break
+    fi
+  done
 fi
 
-# Detect GPU mode
-GPU_MODE=""
-if python3 -c "
+# Detect GPU / accelerator
+detect_device() {
+  if [ "$COMFYUI_DEVICE" != "auto" ]; then
+    echo "$COMFYUI_DEVICE"
+    return
+  fi
+  "$PYTHON" -c "
 import torch
-if torch.cuda.is_available():
-    exit(0)
-if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-    exit(0)
-exit(1)
-" 2>/dev/null; then
-    echo "GPU detected"
-else
-    echo "No GPU detected, using CPU mode"
-    GPU_MODE="--cpu"
+try:
+    accel = torch.accelerator.current_accelerator()
+    if torch.accelerator.is_available():
+        print(accel)
+    else:
+        print('cpu')
+except AttributeError:
+    # torch < 2.5 — fall back to individual checks
+    if torch.cuda.is_available():
+        print('cuda')
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+        print('mps')
+    else:
+        print('cpu')
+" 2>/dev/null || echo "cpu"
+}
+
+DEVICE=$(detect_device)
+
+# Build argument list
+args=(
+  "$MAIN_PY"
+  --listen "$COMFYUI_LISTEN"
+  --port "$COMFYUI_PORT"
+)
+
+# Directory flags (only added when the env var is set)
+[ -n "''${COMFYUI_BASE_DIR:-}" ]     && args+=(--base-directory "$COMFYUI_BASE_DIR")
+[ -n "''${COMFYUI_OUTPUT_DIR:-}" ]   && args+=(--output-directory "$COMFYUI_OUTPUT_DIR")
+[ -n "''${COMFYUI_INPUT_DIR:-}" ]    && args+=(--input-directory "$COMFYUI_INPUT_DIR")
+[ -n "''${COMFYUI_USER_DIR:-}" ]     && args+=(--user-directory "$COMFYUI_USER_DIR")
+[ -n "''${COMFYUI_TEMP_DIR:-}" ]     && args+=(--temp-directory "$COMFYUI_TEMP_DIR")
+[ -n "''${COMFYUI_DATABASE_URL:-}" ] && args+=(--database-url "$COMFYUI_DATABASE_URL")
+
+# Add extra model paths config if the file exists
+if [ -f "''${COMFYUI_EXTRA_MODEL_PATHS:-}" ]; then
+  args+=(--extra-model-paths-config "$COMFYUI_EXTRA_MODEL_PATHS")
 fi
 
-echo ""
-echo "Starting ComfyUI..."
-echo ""
+# Force CPU mode if detected/requested
+if [ "$DEVICE" = "cpu" ]; then
+  args+=(--cpu)
+fi
 
-# Set COMFYUI_BASE_DIR for custom nodes that need write access
-export COMFYUI_BASE_DIR="$COMFYUI_SOURCE"
+# Enable ComfyUI-Manager unless explicitly disabled
+if [ "$COMFYUI_ENABLE_MANAGER" != "0" ]; then
+  args+=(--enable-manager)
+fi
 
-exec python3 "$COMFYUI_SOURCE/main.py" $GPU_MODE \
-    --listen "$LISTEN" \
-    --port "$PORT" \
-    --output-directory "$OUTPUT_DIR" \
-    --input-directory "$INPUT_DIR" \
-    --user-directory "$USER_DIR" \
-    --temp-directory "$TEMP_DIR" \
-    --extra-model-paths-config "$EXTRA_PATHS" \
-    "$@"
+# Startup log
+echo "ComfyUI starting"
+echo "  Python:  $PYTHON"
+echo "  Device:  $DEVICE"
+echo "  Listen:  $COMFYUI_LISTEN:$COMFYUI_PORT"
+
+exec "$PYTHON" "''${args[@]}"
 LAUNCHER
 
     chmod +x $out/bin/comfyui-start
 
-    # Wrap the launcher with Python environment
-    wrapProgram $out/bin/comfyui-start \
-      --prefix PATH : ${pythonEnv}/bin \
-      --prefix PYTHONPATH : ${pythonEnv}/${python3Fixed.sitePackages}
+    # NOTE: comfyui-start is NOT wrapped with pythonEnv.
+    # It uses $FLOX_ENV_CACHE/venv/bin/python directly and sets up
+    # PYTHONPATH at runtime to prioritize Flox env packages (CUDA/MPS torch)
+    # over the bundled CPU torch from pythonEnv.
+    # Wrapping with --prefix PYTHONPATH would put CPU torch first, breaking
+    # GPU detection in environments that provide CUDA torch via manifest.
 
     # Create 'start' script - starts service and opens browser
     cat > $out/bin/start << 'START_SCRIPT'
@@ -800,7 +861,7 @@ START_SCRIPT
       - Impact Pack and Impact Subpack
       - Community custom nodes (rgthree, WAS, efficiency, essentials, etc.)
       - ControlNet-Aux preprocessors
-      - Video generation nodes (AnimateDiff, VideoHelperSuite, LTXVideo)
+      - Video generation nodes (AnimateDiff, VideoHelperSuite, LTXVideo, WanVideo, FramePack, HunyuanVideo)
       - Default workflows
 
       This package avoids venv isolation issues by bundling everything
