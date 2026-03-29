@@ -30,7 +30,7 @@
 
 let
   # ComfyUI version
-  comfyuiVersion = "0.15.0";
+  comfyuiVersion = "0.18.3";
 
   # Build versioning — pre-computed in build-meta/*.json before each build
   buildMeta = builtins.fromJSON (builtins.readFile ../../build-meta/comfyui-complete.json);
@@ -186,7 +186,7 @@ let
     owner = "comfyanonymous";
     repo = "ComfyUI";
     rev = "v${comfyuiVersion}";
-    hash = "sha256-IENMvLEmLuKEjw+yIsIbXorF3BmIqYyV+FGxgbccLz8=";
+    hash = "sha256-ivyNuXXJJtmaXPgEJAwCESa+QgGzXawwQUw6m9A3X0o=";
   };
 
 in stdenv.mkDerivation rec {
@@ -593,6 +593,8 @@ comfyui_work:
     vae: vae/
     vae_approx: vae_approx/
     diffusion_models: diffusion_models/
+    text_encoders: text_encoders/
+    latent_upscale_models: latent_upscale_models/
     ultralytics: ultralytics/
     ultralytics_bbox: ultralytics/bbox/
     ultralytics_segm: ultralytics/segm/

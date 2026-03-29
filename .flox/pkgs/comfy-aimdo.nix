@@ -10,7 +10,7 @@
 
 python3.pkgs.buildPythonPackage rec {
   pname = "comfy-aimdo";
-  version = "0.1.8";
+  version = "0.2.12";
   format = "wheel";
 
   src = fetchPypi {
@@ -19,7 +19,7 @@ python3.pkgs.buildPythonPackage rec {
     format = "wheel";
     dist = "py3";
     python = "py3";
-    hash = "sha256-BVs3sDetESkbqH2knvJ4weuw4ix0IRH6+a4xWzru3Zk=";
+    hash = "sha256-YP7JJ1LV16UeSeyyE+lUZl7YD69mS42rJEnBzB/kan4=";
   };
 
   # No dependencies beyond Python itself
