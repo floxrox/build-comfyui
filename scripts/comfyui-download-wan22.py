@@ -11,8 +11,8 @@ Download Wan 2.2 video generation models for ComfyUI.
 
 Variants:
   ti2v-5b (default)  Text+Image-to-Video 5B (FP16)     ~17 GB
-  i2v-14b            Image-to-Video 14B MoE (FP8)       ~20 GB
-  all                Both variants                       ~30 GB
+  i2v-14b            Image-to-Video 14B MoE (FP8)       ~33 GB
+  all                Both variants                       ~43 GB
 
 TI2V-5B downloads:
   wan2.2_ti2v_5B_fp16.safetensors         (~9.3 GB)   ->  diffusion_models/
@@ -21,6 +21,7 @@ TI2V-5B downloads:
 
 I2V-14B additional downloads:
   wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors (~13.3 GB)  ->  diffusion_models/
+  wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors  (~13.3 GB)  ->  diffusion_models/
   wan_2.1_vae.safetensors                          (~0.2 GB)   ->  vae/
 
 Source: Comfy-Org/Wan_2.2_ComfyUI_Repackaged on HuggingFace
@@ -63,14 +64,15 @@ FILES_TI2V_5B = [
 
 FILES_I2V_14B = [
     (WAN_REPO, "split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors", "diffusion_models", "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors", "13.3 GB"),
+    (WAN_REPO, "split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors", "diffusion_models", "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors", "13.3 GB"),
     (WAN_REPO, "split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors", "clip", "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "6.3 GB"),
     (WAN_REPO, "split_files/vae/wan_2.1_vae.safetensors", "vae", "wan_2.1_vae.safetensors", "0.2 GB"),
 ]
 
 VARIANT_SIZES = {
     "ti2v-5b": "~17 GB",
-    "i2v-14b": "~20 GB",
-    "all": "~30 GB",
+    "i2v-14b": "~33 GB",
+    "all": "~43 GB",
 }
 
 VARIANT_LABELS = {
