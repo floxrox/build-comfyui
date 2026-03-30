@@ -1,7 +1,7 @@
 {
-  "build_version": 59,
+  "build_version": 61,
   "force_increment": 0,
-  "git_rev": "1e05b7a2c406f519e29a3394c1ce8d0ce76f5775",
-  "git_rev_short": "1e05b7a",
-  "changelog": "ComfyUI 0.18.3, video gen support (Wan 2.2, HunyuanVideo 1.5, FramePack), peft 0.18.1, comfy-aimdo 0.2.12"
+  "git_rev": "d9acb4958120e9c38a6ace7ad3877fe553d3f47a",
+  "git_rev_short": "d9acb49",
+  "changelog": "README + download script updates"
 }
