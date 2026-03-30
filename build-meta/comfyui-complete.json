@@ -1,7 +1,7 @@
 {
-  "build_version": 53,
+  "build_version": 59,
   "force_increment": 0,
-  "git_rev": "f04d7444c1a56670c95609ea79e5659fea686f70",
-  "git_rev_short": "f04d744",
-  "changelog": "Fix scipy Frankenstein merge: symlink bundled pythonEnv scipy/numpy in PYTHONPATH."
+  "git_rev": "1e05b7a2c406f519e29a3394c1ce8d0ce76f5775",
+  "git_rev_short": "1e05b7a",
+  "changelog": "ComfyUI 0.18.3, video gen support (Wan 2.2, HunyuanVideo 1.5, FramePack), peft 0.18.1, comfy-aimdo 0.2.12"
 }
