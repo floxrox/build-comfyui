@@ -1,7 +1,7 @@
 {
-  "build_version": 61,
+  "build_version": 63,
   "force_increment": 0,
-  "git_rev": "d9acb4958120e9c38a6ace7ad3877fe553d3f47a",
-  "git_rev_short": "d9acb49",
-  "changelog": "README + download script updates"
+  "git_rev": "a3078d16922b1b664e8ec41197f6624c5f1c38c5",
+  "git_rev_short": "a3078d1",
+  "changelog": "comfyui-setup: print model download script info after setup"
 }
