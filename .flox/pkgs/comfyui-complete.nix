@@ -613,6 +613,22 @@ setup_comfyui
 echo ""
 echo "ComfyUI Complete - Setup finished"
 echo ""
+echo "Model download scripts (run once to download models for each workflow):"
+echo ""
+echo "  Image generation:"
+echo "    comfyui-download-sd15.py             Stable Diffusion 1.5        (~4 GB)"
+echo "    comfyui-download-sdxl.py             Stable Diffusion XL 1.0     (~7 GB)"
+echo "    comfyui-download-sd35.py             Stable Diffusion 3.5 Large  (~23 GB, HF token)"
+echo "    comfyui-download-flux.py             FLUX.1-dev                  (~22 GB, HF token)"
+echo ""
+echo "  Video generation:"
+echo "    comfyui-download-wan22.py            Wan 2.2 TI2V-5B (default)  (~17 GB)"
+echo "    comfyui-download-wan22.py --variant i2v-14b   Wan 2.2 I2V-14B   (~33 GB)"
+echo "    comfyui-download-hunyuan15.py        HunyuanVideo 1.5 I2V       (~21 GB)"
+echo "    comfyui-download-framepack.py        FramePack I2V              (~24 GB)"
+echo ""
+echo "  Run any script with --help or --dry-run for details."
+echo ""
 SETUP
 
     chmod +x $out/bin/comfyui-setup
