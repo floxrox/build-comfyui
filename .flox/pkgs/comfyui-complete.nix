@@ -784,6 +784,44 @@ if [ "$COMFYUI_ENABLE_MANAGER" != "0" ]; then
   args+=(--enable-manager)
 fi
 
+# Pre-flight: detect stale alembic revision in database
+# If the database was migrated by a different ComfyUI version, the current
+# revision won't exist in this build's alembic_db/versions/. Alembic would
+# fail with "Can't locate revision". Back up and remove the stale database
+# so ComfyUI can recreate it cleanly.
+if [ -n "''${COMFYUI_DATABASE_URL:-}" ]; then
+  db_file="''${COMFYUI_DATABASE_URL#sqlite:///}"
+  alembic_versions="$FLOX_ENV_CACHE/comfyui-runtime/alembic_db/versions"
+  if [ -f "$db_file" ] && [ -d "$alembic_versions" ]; then
+    stale=$("$PYTHON" -c "
+import sqlite3, sys, os
+try:
+    conn = sqlite3.connect('$db_file')
+    tables = [r[0] for r in conn.execute(\"SELECT name FROM sqlite_master WHERE type='table'\").fetchall()]
+    if 'alembic_version' not in tables:
+        sys.exit(0)
+    rows = conn.execute('SELECT version_num FROM alembic_version').fetchall()
+    conn.close()
+    versions_dir = '$alembic_versions'
+    for (rev,) in rows:
+        # Check if any migration file starts with this revision ID
+        found = any(f.startswith(rev) for f in os.listdir(versions_dir) if f.endswith('.py'))
+        if not found:
+            print(rev)
+            sys.exit(0)
+except Exception:
+    pass
+" 2>/dev/null)
+    if [ -n "$stale" ]; then
+      echo "WARNING: Database has alembic revision '$stale' which does not exist in this build."
+      echo "  This happens when the database was created by a different ComfyUI version."
+      echo "  Backing up and removing stale database so it can be recreated."
+      cp "$db_file" "''${db_file}.stale-$(date +%Y%m%d-%H%M%S)"
+      rm -f "$db_file"
+    fi
+  fi
+fi
+
 # Startup log
 echo "ComfyUI starting"
 echo "  Python:  $PYTHON"
