@@ -1,7 +1,7 @@
 {
-  "build_version": 63,
+  "build_version": 66,
   "force_increment": 0,
-  "git_rev": "a3078d16922b1b664e8ec41197f6624c5f1c38c5",
-  "git_rev_short": "a3078d1",
-  "changelog": "comfyui-setup: print model download script info after setup"
+  "git_rev": "481ee09ea886e9ffd44789a23809d8d5848a5168",
+  "git_rev_short": "481ee09",
+  "changelog": "comfyui-start: detect and recover from stale alembic database revisions"
 }
