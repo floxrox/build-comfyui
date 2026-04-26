@@ -1,6 +1,6 @@
 # build-comfyui
 
-ComfyUI 0.15.0 as a complete Nix package for Flox environments. Bundles ComfyUI core, 40+ Python dependencies (torch-agnostic builds), 24 custom nodes, launcher scripts, and model download tools into a single `stdenv.mkDerivation`.
+ComfyUI 0.18.3 as a complete Nix package for Flox environments. Bundles ComfyUI core, 40+ Python dependencies (torch-agnostic builds), 24 custom nodes, launcher scripts, and model download tools into a single `stdenv.mkDerivation`.
 
 This is the **build** repository. A separate runtime Flox environment consumes the output and provides GPU-specific PyTorch (CUDA, MPS, or CPU).
 
@@ -56,7 +56,7 @@ result-comfyui-complete/
 
 `comfyui-complete` is a single `stdenv.mkDerivation` that bundles:
 
-- **ComfyUI 0.15.0 source** fetched from GitHub at a pinned tag
+- **ComfyUI 0.18.3 source** fetched from GitHub at a pinned tag
 - **pythonEnv** with 40+ Python packages (torch, torchvision, numpy, scipy, transformers, diffusers, etc.)
 - **24 custom nodes** from 5 sub-packages (Impact Pack, community nodes, ControlNet-Aux, video generation, Impact Subpack)
 - **10 scripts** for setup, launching, and model downloads
@@ -201,8 +201,8 @@ Convenience launcher for interactive use:
 | Command | Model | Size | HF Token | VRAM |
 |---------|-------|------|----------|------|
 | `comfyui-download-wan22.py` | Wan 2.2 TI2V-5B (default) | ~17 GB | Not required | 16+ GB |
-| `comfyui-download-wan22.py --variant i2v-14b` | Wan 2.2 I2V-14B MoE (FP8) | ~20 GB | Not required | 24+ GB |
-| `comfyui-download-wan22.py --variant all` | Wan 2.2 All Variants | ~30 GB | Not required | 24+ GB |
+| `comfyui-download-wan22.py --variant i2v-14b` | Wan 2.2 I2V-14B MoE (FP8, dual-model) | ~33 GB | Not required | 24+ GB |
+| `comfyui-download-wan22.py --variant all` | Wan 2.2 All Variants | ~43 GB | Not required | 24+ GB |
 | `comfyui-download-framepack.py` | FramePack I2V (HunyuanVideo, FP8) | ~24 GB | Not required | 24+ GB |
 | `comfyui-download-hunyuan15.py` | HunyuanVideo 1.5 I2V (default) | ~18 GB | Not required | 24+ GB |
 | `comfyui-download-hunyuan15.py --variant t2v` | HunyuanVideo 1.5 T2V | ~17 GB | Not required | 24+ GB |
@@ -268,17 +268,17 @@ Version metadata is stored in `build-meta/comfyui-complete.json` and read by the
 
 ```json
 {
-  "build_version": 53,
+  "build_version": 59,
   "force_increment": 0,
-  "git_rev": "f04d7444c1a56670c95609ea79e5659fea686f70",
-  "git_rev_short": "f04d744",
-  "changelog": "Fix scipy Frankenstein merge: symlink bundled pythonEnv scipy/numpy in PYTHONPATH."
+  "git_rev": "1e05b7a2c406f519e29a3394c1ce8d0ce76f5775",
+  "git_rev_short": "1e05b7a",
+  "changelog": "ComfyUI 0.18.3, video gen support (Wan 2.2, HunyuanVideo 1.5, FramePack), peft 0.18.1, comfy-aimdo 0.2.12"
 }
 ```
 
 ### Version Format
 
-The Nix `version` attribute is `0.15.0+<git_rev_short>` (e.g., `0.15.0+f04d744`). The `+` suffix ensures each code commit produces a distinct store path.
+The Nix `version` attribute is `0.18.3+<git_rev_short>` (e.g., `0.18.3+1e05b7a`). The `+` suffix ensures each code commit produces a distinct store path.
 
 ### Why Pre-Computed
 
@@ -310,13 +310,13 @@ For version bumps without code changes (e.g., upstream dependency updates), manu
 The build output contains a marker file at `share/comfyui-complete/flox-build-version-<N>`:
 
 ```
-build-version: 53
-upstream-version: 0.15.0
-package-version: 0.15.0+f04d744
-git-rev: f04d7444c1a56670c95609ea79e5659fea686f70
-git-rev-short: f04d744
+build-version: 59
+upstream-version: 0.18.3
+package-version: 0.18.3+1e05b7a
+git-rev: 1e05b7a2c406f519e29a3394c1ce8d0ce76f5775
+git-rev-short: 1e05b7a
 force-increment: 0
-changelog: Fix scipy Frankenstein merge: symlink bundled pythonEnv scipy/numpy in PYTHONPATH.
+changelog: ComfyUI 0.18.3, video gen support (Wan 2.2, HunyuanVideo 1.5, FramePack), peft 0.18.1, comfy-aimdo 0.2.12
 ```
 
 ## Package Inventory
