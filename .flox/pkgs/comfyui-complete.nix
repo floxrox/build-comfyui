@@ -30,7 +30,7 @@
 
 let
   # ComfyUI version
-  comfyuiVersion = "0.18.3";
+  comfyuiVersion = "0.19.3";
 
   # Build versioning — pre-computed in build-meta/*.json before each build
   buildMeta = builtins.fromJSON (builtins.readFile ../../build-meta/comfyui-complete.json);
@@ -186,7 +186,7 @@ let
     owner = "comfyanonymous";
     repo = "ComfyUI";
     rev = "v${comfyuiVersion}";
-    hash = "sha256-ivyNuXXJJtmaXPgEJAwCESa+QgGzXawwQUw6m9A3X0o=";
+    hash = "sha256-rfAF32TfVt/oVInV5Absky1PqMFQWiBd+huYrJFhHc0=";
   };
 
 in stdenv.mkDerivation rec {
