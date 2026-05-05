@@ -30,7 +30,7 @@
 
 let
   # ComfyUI version
-  comfyuiVersion = "0.19.3";
+  comfyuiVersion = "0.20.1";
 
   # Build versioning — pre-computed in build-meta/*.json before each build
   buildMeta = builtins.fromJSON (builtins.readFile ../../build-meta/comfyui-complete.json);
@@ -137,6 +137,8 @@ let
     # From nixpkgs - standard packages
     piexif
     simpleeval
+    blake3
+    requests
     numba
     gitpython
     easydict
@@ -186,7 +188,7 @@ let
     owner = "comfyanonymous";
     repo = "ComfyUI";
     rev = "v${comfyuiVersion}";
-    hash = "sha256-rfAF32TfVt/oVInV5Absky1PqMFQWiBd+huYrJFhHc0=";
+    hash = "sha256-CYrOLwfQvj4024WZ7OlGbJOxyj8qKHuwIfVluNVHIk4=";
   };
 
 in stdenv.mkDerivation rec {
@@ -533,8 +535,8 @@ setup_comfyui() {
 
     # Install packages that need to be pip-installed
     $pip_cmd \
-      comfyui-workflow-templates==0.9.3 \
-      comfyui-embedded-docs==0.4.3 \
+      comfyui-workflow-templates==0.9.63 \
+      comfyui-embedded-docs==0.4.4 \
       "safetensors>=0.4.2" \
       "comfyui_manager>=4.0" \
       "matrix-nio>=0.24"  # ComfyUI-Manager matrix sharing feature
@@ -551,9 +553,9 @@ setup_comfyui() {
 
     # Install comfy-kitchen without deps to avoid pulling torch from PyPI
     if command -v uv &> /dev/null; then
-      uv pip install --python "$venv/bin/python" --no-deps "comfy-kitchen>=0.2.7"
+      uv pip install --python "$venv/bin/python" --no-deps "comfy-kitchen>=0.2.8"
     else
-      pip install --no-deps "comfy-kitchen>=0.2.7"
+      pip install --no-deps "comfy-kitchen>=0.2.8"
     fi
 
     # Install kornia only on non-x86_64-linux platforms (we have it from Flox on Linux)
