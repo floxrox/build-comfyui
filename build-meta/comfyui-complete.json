@@ -1,7 +1,7 @@
 {
-  "build_version": 68,
+  "build_version": 70,
   "force_increment": 0,
-  "git_rev": "007e9838481880ceda35339b09eec0c6a1ce80b4",
-  "git_rev_short": "007e983",
-  "changelog": "comfyui 0.19.3, fix framepack workflows, add 60sec variant"
+  "git_rev": "23ba800d778107ade56986203944898895fc1dfd",
+  "git_rev_short": "23ba800",
+  "changelog": "comfyui 0.19.3 -> 0.20.1, comfy-aimdo 0.2.14, add blake3 + requests deps, bump pip pkg versions"
 }
