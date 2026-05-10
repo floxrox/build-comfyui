@@ -26,6 +26,7 @@
 , makeWrapper
 , callPackage
 , symlinkJoin
+, arrow-cpp  # needed on Darwin to override broken marker
 }:
 
 let
@@ -37,9 +38,18 @@ let
   buildVersion = buildMeta.build_version;
   packageVersion = "${comfyuiVersion}+${buildMeta.git_rev_short}";
 
+  # On Darwin, arrow-cpp is marked broken in nixpkgs-unstable.
+  # Override meta to allow pyarrow evaluation. Nix laziness means the
+  # arrow-cpp argument is just a reference — overrideAttrs creates a new
+  # derivation with broken=false without triggering the original assertion.
+  arrow-cpp-fixed = arrow-cpp.overrideAttrs (old: {
+    meta = old.meta // { broken = false; };
+  });
+
   # Python package overrides:
   # - asyncer: missing sniffio runtime dependency in nixpkgs (all platforms)
   # - pyarrow: test_timezone_absent fails on macOS timezone lookups (Darwin only)
+  #            arrow-cpp marked broken on Darwin — override with arrow-cpp-fixed
   # - dask: test crashes on aarch64-darwin, pythonImportsCheck needs numpy (Darwin only)
   # - imageio: ffmpeg/pyav tests fail in Nix sandbox on macOS (Darwin only)
   python3Fixed = python3.override {
@@ -51,7 +61,9 @@ let
         dependencies = (old.dependencies or []) ++ [ pprev.requests ];
       });
     } // lib.optionalAttrs stdenv.hostPlatform.isDarwin {
-      pyarrow = pprev.pyarrow.overridePythonAttrs (old: {
+      pyarrow = (pprev.pyarrow.override {
+        arrow-cpp = arrow-cpp-fixed;
+      }).overridePythonAttrs (old: {
         doCheck = false;
       });
       dask = pprev.dask.overridePythonAttrs (old: {

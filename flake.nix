@@ -50,6 +50,11 @@
           overlays = [ darwinOverlay ];
           config = {
             allowUnfree = true;
+            # arrow-cpp is marked broken on Darwin in nixpkgs-unstable;
+            # pyarrow (with doCheck=false) still builds fine
+            problems.handlers = {
+              arrow-cpp.broken = "warn";
+            };
           };
         };
 
